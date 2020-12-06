@@ -1,0 +1,550 @@
+% to-do
+% -----
+% - Audit for the use of "points" and "locations" and "data" to make sure all is consistent. The ts are locations, the ys are data.
+% - Audit for use of the words "fit" and "prediction" and "model". All okay?
+% - Audit for use of \, as the multiply operator? Fix the kerning around the ^\top items?
+% - Audit for design matrix, feature matrix, and so on. We should mention design matrix but stick with feature matrix as our terminology.
+% - Audit for hyphens in under-parameterization and re-weighting and so on? Hyphenated words or single words? Make decisions and stick to them.
+% - Needs a bibliography; should we use bibtex?
+% - Add acknowledgements: Sam Roweis (deceased), Dan Foreman-Mackey (Flatiron), Teresa Huang (JHU), Rachel Ward (UT Austin), Bernhard Sch\"olkopf (MPI-IS); who else??
+
+\documentclass[12pt,letterpaper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{xcolor}
+
+% Price-Whelan's figure hacks
+\usepackage[framemethod=tikz]{mdframed}
+\usetikzlibrary{shadows}
+\definecolor{captiongray}{HTML}{555555}
+\mdfsetup{%
+  innertopmargin=2ex,
+  innerbottommargin=1.8ex,
+  linecolor=captiongray,
+  linewidth=0.5pt,
+  roundcorner=5pt,
+  shadow=true,
+  shadowcolor=black!05,
+  shadowsize=4pt
+}
+
+% Hogg's issues
+\setlength{\topmargin}{-0.40in}
+\setlength{\headsep}{4ex}
+\setlength{\textheight}{9.20in}
+\setlength{\oddsidemargin}{-0.20in}
+\setlength{\textwidth}{5.00in}
+\setlength{\parindent}{0.18in}
+\pagestyle{myheadings}
+\markright{\textcolor{gray}{\textsf{\upshape Fitting very flexible models / Hogg \& Villar}}}
+\frenchspacing\sloppy\sloppypar\raggedbottom
+
+% Math operators and definitions
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{mathtools}
+\newcommand{\floor}[1]{\left\lfloor #1 \right\rfloor}
+\DeclareMathOperator{\FT}{FT}
+
+% text definitions
+\newcommand{\documentname}{\textsl{Note}}
+\newcommand{\sectionname}{Section}
+\newcommand{\foreign}[1]{\textsl{#1}}
+
+\begin{document}\thispagestyle{plain}
+
+\section*{\raggedright Fitting very flexible models: Linear regression with large numbers of parameters\footnote{Hello world?}}
+
+\noindent
+\textbf{David W. Hogg} \\
+\textsl{\footnotesize Flatiron Institute, a division of the Simons Foundation \\
+Center for Cosmology and Particle Physics, Dept. Physics, New York University \\
+Center for Data Science, New York University \\
+Max-Planck-Institut f\"ur Astronomie, Heidelberg}
+
+\medskip
+\noindent
+\textbf{Soledad Villar} \\
+\textsl{\footnotesize Department of Applied Mathematics \& Statistics, Johns Hopkins University \\
+Mathematical Institute for Data Science, Johns Hopkins University}
+
+\medskip
+\noindent
+2020 December
+
+\paragraph{Abstract:} There are many uses for linear fitting; the context we consider here is interpolation and denoising of data, as (for example) when you have calibration data and you want to fit a smooth, flexible function to those data.
+Or you want to fit a flexible function to de-trend a time series or normalize a spectrum.
+In these contexts, investigators often choose a polynomial basis, or a Fourier basis, or wavelets, or something equally general.
+They also choose an order, or number of basis functions to fit, and (often) some kind of regularization.
+Here we discuss how this basis-function fitting is done, with ordinary least squares and extensions thereof.
+We emphasize that it is often valuable to choose \emph{far more parameters than data points}, despite folk rules to the contrary.
+It is even possible to take the limit of infinite parameters, at which, if the basis and regularization are chosen correctly, the least-squares fit becomes the mean of a Gaussian process (or, equivalently, a Wiener filter or kriging).
+Although there are often good fits with small numbers of parameters and also with very large numbers of parameters, the dangerous regime for linear fitting is when the number of parameters is comparable to the number of data points (the double-descent or peaking-phenomenon regime); we discuss this problem and how to ameliorate or avoid it.
+
+\section{Introduction}
+
+In contexts in which we want to fit a flexible function to data, for interpolation or denoising, we often perform linear fitting in a generic basis, such as polynomials, fourier modes, wavelets, or spherical harmonics.
+This kind of linear fitting arises in astronomy when, for example, we want to calibrate the relationship between wavelength and position on the detector in a spectrograph:
+We have noisy measurements of calibration data and we want to fit a smooth function of position that de-noises and interpolates the calibration data.
+It also arises when we want to make a data-driven interpolation, extrapolation, or local averaging of data, as with light-curve detrending, continuum estimation, and interpolation or extrapolation of instrument housekeeping (or other) data.
+
+When faced with problems of this kind, investigators have three general kinds of choices that they have to make:
+They have to choose the basis in which they are working (Fourier, polynomial, wavelet, etc.).
+They have to choose to what order they extend the basis---that is, how many components to use in the fit.
+And they have to decide how (or whether) to regularize the fit, or discourage fit coefficients from getting out of line when the data are noisy or the basis functions are close to (or strictly) degenerate.
+In what follows, we will discuss all three of these kinds of choices.
+
+If you have encountered and solved problems like these, you have made these three kinds of choices (sometimes implcitly).
+The second choice---about the number of coefficients to fit---is usually made heuristically, and often subject to the strongly believed opinion that you \emph{must have fewer parameters than data points}.
+Here we are going to show that this folk rule is not valid; you can go to extremely large numbers of coefficients without trouble.
+But like most folk rules, it has a strong basis in reality: There are extremely bad choices possible for the number of coefficients, and especially when the number of parameters is close or comparable to the number of data points.
+As we will discuss below, these choices ought to be avoided, or made with care.
+
+In many cases the third kind of choice---about regularization---is made implicitly, not explicitly.
+Here we are going to emphasize this choice and its importance, and its value in improving your results.
+
+Alternatively, if you are unhappy with the three choices of basis, and order, and regularization, you might decide to avoid such decisions and go fully \emph{non-parametric}:
+Instead of fitting a basis expansion, you can use a strict interpolator (like a cubic spline), or you can fit a Gaussian process to your data.
+Here we will show that the choice of any Gaussian process kernel function is equivalent to choosing a basis and a regularization and letting the number of fit components go to infinity (in a certain way).
+That is, going non-parametric doesn't really get you out of making these choices.
+It just makes these choices more implicit.
+And it is a pleasure to note that any time you have gone non-parametric you have implicitly chosen to use a basis with way more fit parameters than data points!
+The fact that non-parametrics work so well is strong evidence against the folk rule about the number of parameters needing to be less than the number of data points.
+
+Fundamentally the assumption or setting in what follows will be that you care about predicting new data or interpolating the data, but you explicitly don't care about the parameters of the fit or the weights of the basis functions \foreign{per se}.
+In this setting there are no important meanings to the components of the model.
+That is---for us---only the data exist.
+The details of the model are just choices that permit high-quality interpolations and predictions.
+
+In some contexts you have strong beliefs about the noise affecting your measurements. In other cases you don't.
+In some cases you have strong reasons to use a particular basis.
+In other cases you don't.
+The differences in these beliefs and the differences in your objectives will change what methods you choose and how you use and analyze them.
+We'll try to come back to these important \emph{subjective} aspects of regression as we go.
+
+\section{\raggedright Standard linear fitting: Ordinary least squares with a feature embedding}
+
+Our setup will be that there are $n$ scalar data points $y_i$.
+Each of these data points has an associated coordinate or location $t_i$.
+This location $t_i$ could be thought of as a time at which the data point was taken, or a position, or it can be a higher dimensional vector or blob of housekeeping data associated with the data point.
+Critically, we are going to imagine that the $t_i$ are known very well (not very uncertain or noisy), while the $y_i$ are possibly very uncertain or noisy measurements.
+We'll return to these assumptions at the end.
+
+We are going to fit these data $y_i$ with a linear sum of $p$ basis functions $g_j(t)$. These basis functions are functions of the coordinates $t$. That is, our implicit generative model is
+\begin{equation}
+    y_i = \sum_{j=1}^p \beta_j\,g_j(t_i) + \mathrm{noise}
+    ~,
+\end{equation}
+where the $p$ values $\beta_j$ are parameters or coefficients of the linear fit. We can assemble the evaluations of the $p$ functions $g_j(t)$ at the $n$ data coordinates $t_i$ into a $n\times p$ design matrix or feature matrix $X$ such that
+\begin{equation}
+    [X]_{ij} = g_j(t_i)
+    ~.
+\end{equation}
+The transformation of the $n$ locations $t_i$ into a $n\times p$ matrix $X$ is the opposite of a dimensionality reduction.
+It is called variously a \emph{feature map} or a \emph{feature embedding}.
+We like ``embedding'' because it (almost always) raises the dimensionality of the locations $t$ into the $p$-dimensional space of the rows of $X$.
+
+For a concrete example, one common choice is to make the feature embedding functions $g_j()$ terms in a Fourier series
+\begin{align}\label{eq:basis}
+    g_j(t) &= \left\{\begin{array}{ll}
+            \cos\omega_j\,t & \mbox{for $j$ odd} \\
+            \sin\omega_j\,t & \mbox{for $j$ even}\end{array}\right.
+    \\
+    \omega_j &= \frac{\pi}{T}\,\floor{\frac{j}{2}}
+    ~,
+\end{align}
+where $T$ is a (large) length-scale in the coordinate space ($t$ space) and $\floor{j/2}$ indicates the floor of $j/2$ (integer division).
+Example functions $g_j(t)$ from this basis are shown in \figurename~\ref{fig:basis}.
+Alternative common choices would be to make the embedding fumctions $g_j()$ polynomials or other kinds of ordered basis functions, such as wavelets or spherical harmonics (the latter if, say, the $t_i$ are positions on the sphere).
+\begin{figure}[t]
+    \begin{mdframed}
+    \caption{Examples of basis functions $g_j(t)$ from the basis given in equation~(\ref{eq:basis}). This basis was constructed with length-scale parameter $T=3$. The wavelength in the location space decreases, and the frequency increases, with index $j$.}
+    \label{fig:basis}
+    \end{mdframed}
+\end{figure}
+
+The idea of least-squares fitting is that the ``best'' values of the parameters $\beta_j$ are the values that minimize the sum of squares of the differences between the data and the linear combination of features:
+\begin{equation}\label{eq:opt1}
+    \hat{\beta} = \arg\min_\beta \|Y - X\,\beta\|_2^2
+    ~,
+\end{equation}
+where $\hat{\beta}$ is the $p$-vector (column vector) of the $p$ best-fit values $\hat{\beta}_j$ of the parameters $\beta_j$, and $\|q\|_2^2$ denotes the squared L2-norm, or the \emph{sum of squares} of the components of $q$
+\begin{equation}
+    \|q\|_2^2 \equiv q^\top\,q
+    ~.
+\end{equation}
+This optimization objective (\ref{eq:opt1}) is convex and the optimization problem has a solution in closed form as long as the number of parameters (and features) $p$ is less than the number of training points $n$ (and the matrix $X^\top X$ is invertible):
+\begin{equation}
+    \hat{\beta} = (X^\top\,X)^{-1}\,X^\top\,Y
+    ~.
+\end{equation}
+We will treat the case in which the matrix is not invertible below.
+When the investigator knows uncertainties on the training data points $y_i$, this expression will change a bit; we begin to discuss that in the next \sectionname.
+
+But recall our setting:
+We are using the linear fit to interpolate the data, or de-noise the data, or predict new data.
+In these contexts, we don't care about the parameter vector $\hat{\beta}$ itself.
+We care only about the predictions at a set of new ``test'' locations $t_\ast$, which will usually be different from the training locations $t_j$
+From the new test times $t_\ast$ we create the test feature matrix $X_\ast$ (by the same feature embedding functions $g_j(t)$).
+The prediction $\hat{Y}_\ast$ for the $y$ values at the test locations $t_\ast$ becomes
+\begin{equation}\label{eq:OLS}
+    \hat{Y}_\ast = X_\ast\,(X^\top\,X)^{-1}\,X^\top\,Y
+    ~.
+\end{equation}
+Examples of OLS applied to some toy data are shown in \figurename~\ref{fig:ols1}.
+This form (\ref{eq:OLS}) of the prediction of new test data is called ordinary least squares (OLS). It has many good properties, some of which are encoded in the Gauss--Markov theorem.
+SOLEDAD: PUT WORDS HERE ABOUT WHAT IS PROMISED BY GAUSS--MARKOV. ALSO: REFERENCE?
+\begin{figure}[t]
+    \begin{mdframed}
+    \caption{Ordinary least-squares (OLS) fits (continuous lines) to a set of example data points (black dots). Fits are shown for different values of the number of basis functions $p$; there are $n=23$ data points. The data points $y_i$ were generated using a function that does not reside in the function space spanned by the basis. Here the $X_\ast$ matrices used in the predictions $\hat{Y}_\ast$ were generated from a fine grid of points in the location coordinate $t$; the plots of the fine grid of predictions are the continuous lines. The fits with larger $p$ have more flexibility to fit the data than the fit with $p=3$, but the fit at the highest $p$ shows evidence of over-fitting.}
+    \label{fig:ols1}
+    \end{mdframed}
+\end{figure}
+
+\section{Discussion and extensions of OLS}
+
+The prediction (\ref{eq:OLS}) when $p<n$ (the under-paraemeterized or traditional regime) is \emph{affine invariant} in that $p$-dimensional rotations or rescalings of the rectangular $X$ design matrix do not affect predictions.
+That is, if $R$ is an invertible $p\times p$ matrix, the prediction using $X'\leftarrow X\,R$ will be identical to the prediction using the original $X$.
+This affine invariance will return in a different form in the over-parameterized regime, below.
+
+Although the OLS prediction (\ref{eq:OLS}) is affine invariant with respect to $p$-dimensional transformations, it is \emph{not} affine invariant with respect to $n$-dimensional transformations, such as a re-weighting of the input data. Indeed, if you know weights or inverse variances for your data points, conceptually you can put them into a weight matrix $C^{-1}$ (written this way to emphasize that reweighting is usually inverse-variance weighting) and write
+\begin{equation}
+    \hat{Y}_\ast = X_\ast\,(X^\top\,C^{-1}\,X)^{-1}\,X^\top\,C^{-1}\,Y
+    ~,
+\end{equation}
+where the weight matrix $C^{-1}$ is $n\times n$ (and often diagonal in standard applications). This form of least squares is called \emph{weighted least squares} (WLS) because of the data weighting (not to be confused with \emph{feature} weighting, to appear below).
+It is also called chi-squared fitting because it optimizes the scalar objective commonly called chi-squared:
+\begin{equation}
+    \chi^2 = (Y - X\,\beta)^\top\,C^{-1}\,(Y - X\,\beta)
+    ~.
+\end{equation}
+(If that isn't obviously chi-squared to you, recall that $C^{-1}$ is often diagonal and has the inverses of the squares of the data uncertainties on that diagonal.)
+In \figurename~\ref{fig:wls} a comparison of OLS and WLS is shown, for a case of non-trivial data weights, where the data weights are set to be the inverse squares of individual data-point uncertainties.
+\begin{figure}[t]
+    \begin{mdframed}
+    \caption{Comparison of ordinary least-squares (OLS) and weighted least-squares (WLS) fits (continuous lines) to the example data (black dots). In order to illustrate the differences, we assigned non-trivial error bars to the data. The error bars are ignored in the OLS fit, but in the WLS fit, the weight matrix $C^{-1}$ is diagonal with the diagonal entries set to the inverses of the squares of those error bars. The WLS fit ``pays less attention to'' the points on the left with the largest error bars.}
+    \label{fig:wls}
+    \end{mdframed}
+\end{figure}
+
+We will say more about noisy data and the propagation of uncertainties below in \sectionname~\ref{sec:uncertainty}.
+It might be crossing your mind that there are uncertainties not just in the data points $y_i$, but also often in the \emph{locations} $t_i$ of the data points as well. It turns out that taking the latter into account is a much harder problem; we return to this also in \sectionname~\ref{sec:uncertainty} (HOGG: DO WE OR IS IT JUST IN THE DISCUSSION??).
+
+It is common to include a regularization that discourages the fit from making use of large amplitudes $\beta_j$.
+There are many options, but the simplest is ridge regression (or Tikhonov regularization or L2 regularization), which looks like
+\begin{equation}
+    \hat{\beta} = \arg\min_\beta \|Y - X\,\beta\|_2^2 + \lambda\,\|\beta\|_2^2
+    ~,
+\end{equation}
+where $\lambda>0$ is a regularization parameter that penalizes large values for elements $\beta_j$ of the parameter vector.
+This optimization is also convex.
+The ridge-regularized prediction for new data looks like
+\begin{equation}
+    \hat{Y}_\ast = X_\ast\,(X^\top\,X + \lambda\,I)^{-1}\,X^\top\,Y
+    ~,
+\end{equation}
+where $I$ is the $p\times p$ identity.
+In the language of Bayesian inference, $\lambda$ can be seen as a prior variance for the parameters $\beta_j$.
+The salutary effect of the ridge regularization is shown in \figurename~\ref{fig:ridge}.
+\begin{figure}[t]
+    \begin{mdframed}
+    \caption{Comparison of ordinary least-squares (OLS) and ridge-regression fits (continuous lines) to the example data (black dots). In order to illustrate the differences, we chose the $p=21$-parameter fit, which shows evidence of over-fitting at the edges of the fit range. The regularized fit looks more sensible, though it fits the individual data points less precisely. The choice of regularization parameter $\lambda$ matters; here we used $\lambda=0.1$ (chosen arbitrarily).}
+    \label{fig:ridge}
+    \end{mdframed}
+\end{figure}
+
+The ridge brings with it a choice: How to set the hyper-parameter $\lambda$?
+We generally recommend cross-validation, to be discussed below in \sectionname~\ref{sec:dd}.
+Ridge regression is not affine invariant in the sense that the standard OLS prediction (\ref{eq:OLS}) is; that is, the effect of the regularization depends on the amplitudes and linear combinations of features placed in the feature matrix.
+This will become important later when we consider feature weights below.
+It is also case that the regularization need not be proportional to the identity matrix; in principle any positive definite matrix $\Lambda$ could be used in place of $\lambda\,I$; this makes sense to consider when you have detailed prior beliefs about all the parameters $\beta_j$ or if those parameters are measured with different units (say).
+
+HOGG: Connect here to the Gaussian product refactor note.
+
+You can combine both the point weighting from WLS and the generalized ridge regression into a weighted ridge that looks like
+\begin{equation}
+    \hat{Y}_\ast = X_\ast\,(X^\top\,C^{-1}\,X + \Lambda)^{-1}\,X^\top\,C^{-1}\,Y
+    ~.
+\end{equation}
+This form has good properties for many real-world physics applications, where data-point error bars are often known, and functions are often expected to be smooth.
+HOGG: Say something about units here, to set up a subsequent discussion.
+
+\section{\raggedright Over-parameterization}
+
+We are taught folklore, at a young age, that we can never fit for more parameters than we have data. That is, we can never work at $p>n$.
+This isn't true!
+The only limits on inference are given by information theory, and information theory makes no reference to the \emph{number} of anything, parameters or data.
+But it is true that the $p>n$ regime is indeed strange!
+In the over-parameterized case, there are many settings of the parameters $\beta_j$ that will literally zero out the differences between the data $Y$ and the linear prediction $X\,\beta$.
+The OLS solution, in this case, is defined (somewhat arbitrarily) to be the minimum-norm parameter vector $\beta$ that interpolates the data:
+\begin{equation}
+    \hat{\beta} = \arg\min_\beta \|\beta\|_2^2 ~~\mbox{subject to}~~ Y = X\,\beta
+    ~.
+\end{equation}
+Technically this formulation depends on an additional assumption that the feature matrix $X$ is full rank or that the data $Y$ lie in the subspace spanned by $X$.
+This is true almost always when $p>n$.
+This optimization is again convex and has a unique solution, although that solution will depend on feature weights that we discuss in a moment.
+When the investigator knows uncertainties on the training data points $y_i$, this expression will change a bit; we return to that in the HOGG WHICH \sectionname\ (HOGG: DO WE?).
+The under-parameterized and over-parameterized optimizations can be unified into one form by considering the limit of light L2 regularization:
+\begin{equation}
+    \hat{\beta} = \lim_{\lambda\rightarrow 0^+}\left[\arg\min_\beta \|Y - X\,\beta\|_2^2 + \lambda\,\|\beta\|_2^2\right]
+    ~;
+\end{equation}
+in the limit, this delivers the min-norm OLS solution.
+
+In the over-parameterized case ($p>n$), the prediction looks like
+\begin{equation}\label{eq:OLS2}
+    \hat{Y}_\ast = X_\ast\,X^\top\,(X\,X^\top)^{-1}\,Y
+    ~,
+\end{equation}
+provided that $X\,X^\top$ is invertible (which will usually be the case).
+Like (\ref{eq:OLS}), this prediction is \emph{also} called ordinary least squares (OLS), or sometimes ``min-norm least-squares'' to emphasize the degeneracy-breaking choice.
+Examples of OLS fits in the over-parameterized regime are shown in \figurename~\ref{fig:ols2}.
+Note that the fits with different numbers of parameters $p$ lead to very different predictions, but they all go through the data points exactly.
+\begin{figure}[t]
+    \begin{mdframed}
+    \caption{Ordinary least-squares (OLS) or min-norm least-squares fits (continuous lines) to a set of example data points (black dots), but now for a few over-parameterized cases. There are $n=23$ data points. As in \figurename~\ref{fig:ols1}, the data points $y_i$ were generated using a function that does not precisely reside in the function space spanned by the basis. The three fits are very different, but they all go through all the data points exactly. As $p$ gets large, the fit function approaches $y=0$ almost everywhere; this is a consequence of Parseval's Theorem (see text).}
+    \label{fig:ols2}
+    \end{mdframed}
+\end{figure}
+
+It is slightly off-topic to notice that in \figurename~\ref{fig:ols2}, as $p$ gets very large, the OLS solution approaches $y=0$ everywhere that it can.
+This behavior is a direct consequence of Parseval's Theorem (CITE), which states that the Fourier transform is unitary.
+This means that the integral over frequency of the square of the Fourier transform is equal (up to a factor of $2\pi$) to the integral over location of the square of the original function.
+Thus the min-norm solution delivered by OLS, which chooses the interpolating function that minimizes the squares of the component amplitudes in the Fourier basis used to make \figurename~\ref{fig:ols2} will also choose the interpolating function that minimizes the square of the value of the function.
+It will try to stay as close to $y=0$ as possible.
+SOLEDAD: CHECK WORDING.
+
+The two equations for OLS---(\ref{eq:OLS}) and (\ref{eq:OLS2})---can be unified into one equation (and also generalized to handle non-invertible matrices $X^\top X$ and $X\,X^\top$) if we define the pseudo-inverse $X^\dagger$:
+\begin{equation}\label{eq:OLS3}
+    \hat{Y}_\ast = X_\ast\,X^\dagger\,Y
+    ~,
+\end{equation}
+where the pseudo-inverse is the matrix made by inverting the singular values and transposing.
+That is, if the singular-value decomposition (SVD) of $X$ is $U\,S\,V$, with $S$ diagonal, the SVD of $X^\dagger$ is $V^\top\,S_{\text{nonzero}}^{-1}\,U^\top$, where $S_{\text{nonzero}}^{-1}$ contains the inverses of the non-zero elements of $S$, and zeros where $S$ is zero. SOLEDAD IS THERE A BETTER NOTATION OR EXPLANATION HERE? SHOULD I BREAK THIS OUT INTO EQUATIONS? (SOLEDAD SAYS: Define pseudo-inverse for a diagonal matrix and then use SVD and reduce to the previously stated definition.)
+This pseudo-inverse form (\ref{eq:OLS3}) of OLS is extremely general: It works for both the $p\le n$ and $p>n$ cases, and it works when the $X\,X^\top$ or $X^\top\,X$ matrices are not invertible.
+There can be significant numerical issues with implementing the pseudo-inverse; we comment on those in \sectionname~\ref{sec:implementation}.
+
+\section{\raggedright Feature weighting}\label{sec:fwols}
+
+The OLS prediction for $p>n$ is \emph{not} affine invariant with respect to $p$-dimensional rotations or rescalings.
+That is, rotations and scalings in the feature space \emph{will} affect predictions.
+It behooves us to re-scale the features (the $p$ $n$-vectors of the design matrix $X$) in a sensible way, like for instance, to encourage the fit to use low-frequency features more than high-frequency features.
+We can encode these feature weights in a $p\times p$ diagonal weight matrix $\Lambda^{-1}$ and the prediction becomes
+\begin{equation}
+    \hat{Y}_\ast = X_\ast\,\Lambda^{-1}\,X^\top\,(X\,\Lambda^{-1}\,X^\top)^{-1}\,Y
+\end{equation}
+This can be seen as the prediction for new data resulting from the following optimization:
+\begin{equation}
+    \hat{\beta} = \arg\min_\beta \|\Lambda^{1/2}\,\beta\|_2^2 ~~\mbox{subject to}~~ Y = X\,\beta
+    ~,
+\end{equation}
+which can also be written as
+\begin{equation}
+    \hat{\beta} = \lim_{\lambda\rightarrow 0^+}\left[\arg\min_\beta \|Y - X\,\beta\|_2^2 + \lambda\,\|\Lambda^{1/2}\beta\|_2^2\right]
+    ~.
+\end{equation}
+This optimization penalizes more strongly the parameters $\beta_j$ corresponding to features $g_j()$ with larger values of $[\Lambda^{1/2}]_{jj}$.
+
+HOGG: Remind the readers who prefer obvious scalar forms that $\|\Lambda^{-1/2}\,\beta\|_2^2 = \beta^\top\,\Lambda^{-1}\,\beta$. That's a gauge-invariant object (if $\beta$ and $\Lambda$ are gauge-invariant objects themselves).
+
+In the Fourier case this re-weighting can be very straightforward: Each of the $p$ embedding functions $g_j(t)$ has an associated frequency $\omega_j$; we can control the fit by weighting the $j$ features by a function $f(\omega)$.
+For demonstration purposes, we can choose
+\begin{equation}\label{eq:f}
+    f(\omega) = \frac{1}{s^2\,\omega^2 + 1}
+    ~,
+\end{equation}
+where $s$ is a hyper-parameter controlling the (inverse) width of the weighting function in frequency space, and the frequency input will be $\omega_j$ for each feature $j$. That is,
+\begin{equation}\label{eq:lambdainv}
+    [\Lambda^{-1}]_{jj} = [f(\omega_j)]^2
+    ~.
+\end{equation}
+We have chosen this form (\ref{eq:f}) for $f(\omega)$ for specific reasons that will become obvious below.
+The introduction of the feature weights dramatically changes the predictions; this is shown in \figurename~\ref{fig:fwols}.
+High frequencies are suppressed and the prediction becomes smooth.
+\begin{figure}[t]
+    \begin{mdframed}
+    \caption{Comparison of ordinary least squares (OLS) to OLS with a specific feature weighting. The feature-weighting function is given in the text in equations~(\ref{eq:f}) and (\ref{eq:lambdainv}). When the high-frequency features are weighted down, the min-norm solution gives them small amplitudes, making the fit smoother.}
+    \label{fig:fwols}
+    \end{mdframed}
+\end{figure}
+
+This all illustrates that, while OLS is affine invariant in the under-parameterized setting, the affine non-invariance in the over-parameterized setting is a property that can be exploited.
+When the different features are weighted or normalized differently, the amplitudes of the components $\beta_j$ of the parameter vector $\beta$ have to change in response, which in turn changes its norm $\|\beta\|_2^2$.
+That is, the details of the min-norm data-fitting parameter vector depends on the details of how the features are normalized or weighted.
+In feature-weighted OLS, this property can be exploited to make the fits smooth, or meet other desiderata.
+
+HOGG: Now do the full generalization with $C$ and $\Lambda$ and explain how the matrix inversion formula (CITE SOMETHING) makes these two expressions equivalent:
+\begin{align}\label{eq:LambdaC1}
+    \hat{Y} &= X_\ast\,(X^\top\,C^{-1}\,X + \Lambda)^{-1}\,X^\top\,C^{-1}\,Y
+    \\ \label{eq:LambdaC2}
+    \hat{Y} &= X_\ast\,\Lambda^{-1}\,X^\top\,(X\,\Lambda^{-1}\,X^\top + C)^{-1}\,Y
+    ~.
+\end{align}
+Either leave the proof to the reader or make it an exercise HOGG: Check the units. And continue discussion of connections to Bayesian inference. Explain that these forms are good because they relieve the fits of the burden of going exactly through every data point. This is more responsive to the real situation of noisy data, and permits smoother solutions.
+
+\section{\raggedright How to set the number of parameters (and other hyper-parameters)}\label{sec:dd}
+
+There is a lot of literature analyzing the performance of linear regressions as a function of the sizes $n$ and $p$, regularization strengths and forms, and so on (for example, SOLEDAD CITE AND CITE).
+They often refer to the ``risk'', which is a statistics term for the expected squared error (mistake) made when predicting new data not in your training set.
+In order to deliver values or bounds on the risk, this literature depends on knowing how the data were generated, or the family of distributions from which the data ($X$ and $Y$ in our nomenclature) were drawn.
+In the Real World~(tm), you don't get this luxury.
+The data are given to you without documentation!
+Indeed, understanding the generating process of the world is the goal of investigations in the natural sciences (such as astronomy); the investigator does not know the generating process at the outset.
+
+... How do we look at the empirical risk as a function of $p$? That is, introduce cross-validation. Emphasize its particular value for very small values of $n$, where you don't want to hold out lots of data.
+
+... HOGG: PLOTS showing cross-validation; the method and the results.
+
+Now say things about how things go to h*ck when the number of parameters $p$ gets close to the number of data points $n$.
+
+... The CV MSE gets really bad at $p\approx n$. That's not a coincidence. Reasons. Citations.
+
+... You can avoid this with.... reasons. Citations.
+
+HOGG: The CV MSE gets really \emph{good} at particular values of $p$. That's not surprising; there are places where the fit basis is just appropriate for your specific problem. These are the best places to work, if you can afford to search for them and find them.
+
+HOGG: ADD SOMEWHERE ABOVE HERE: You might feel uncomfortable with dropping individual points in this problem, since the points are regularly spaced to begin with, and become irregularly spaced when you leave one out. How much does this matter? It probably does matter in detail, but you don't have much choice in problems like this. All empirical measures of predictive accuracy have these kinds of problems.
+
+\section{\raggedright The Gaussian process: The limit of infinite features}
+
+The Gaussian process (GP) is a non-parametric regression that takes training data $y_i$ at coordinates $t_i$, plus a kernel function, and makes predictions $\hat{y}_\ast$ for new data at new positions $t_\ast$.
+The Gaussian process math looks like
+\begin{equation}
+    \hat{Y}_\ast = K_\ast\,K^{-1}\,Y
+    ~,
+\end{equation}
+where $K_\ast$ is the rectangular kernel matrix between test locations $t_\ast$ and training locations $t_i$, while $K$ is the square kernel matrix between training locations and themselves
+\begin{equation}
+    [K]_{i,i'} = k(t_i,t_{i'})
+    ~,
+\end{equation}
+where $k()$ is a non-negative definite definite kernel function.
+
+HOGG: What does it mean for a kernel function to be non-negative definite?
+
+HOGG: Note that this is not a full GP, which has both a mean and a variance. This is strictly just the MEAN of a GP. Also that this is a Wiener filter or kriging.
+
+HOGG: Note that $K$ can have extremely bad or even infinite condition number; see the implementation notes in \sectionname~\ref{sec:implementation}.
+
+There is a strong connection between OLS and the GP. In particular, when the features $x_j$ form [some kind of] basis, and we take the limit of infinite features ($p\rightarrow\infty$) we get kernel matrices in place of the $X\,\Lambda^{-1}\,X^\top$ matrix products;
+\begin{align}
+    \lim_{p\rightarrow\infty} X\,\Lambda^{-1}\,X^\top &= K
+    \\
+    \lim_{p\rightarrow\infty} X_\ast\,\Lambda^{-1}\,X^\top &= K_\ast
+    ~,
+\end{align}
+where $\Lambda^{-1}$ is the diagonal matrix of weights, and element $i,i'$ of $K$ is obtained by evaluating a kernel function $k(t_i,t_{i'})$.
+Equivalently, the limit is
+\begin{equation}
+    \lim_{p\rightarrow\infty} \sum_{j=1}^p [\Lambda^{-1}]_{jj}\,g_j(t)\,g_{j}(t') = k(t, t')
+    ~,
+\end{equation}
+where we have used the diagonality of $\Lambda$ to make a single sum over $j$.
+The specific form of the kernel function $k(\cdot,\cdot)$ depends on the basis (the features) we choose, and the weighting of the basis functions in the OLS.
+
+The connection between the infinite basis chosen (the form and weighting of the features) and the kernel function is governed by Mercer's theorem (CITE).
+However, if the basis is Fourier, as we chose above in (\ref{eq:basis}), and the spacing between modes ($\Delta\omega =\omega_{j+2}-\omega_j$) is small enough, the kernel becomes very close to the Fourier transform of the square of the weighting function $f(\omega)$ we use to weight the features.
+
+That is, in the case of the specific example of weight function $f(\omega)$ given in equation (\ref{eq:f}), we can connect our feature-weighted OLS to an equivalent GP if we know the fourier transform of the square of $f(\omega)$. We chose that specific form for $f(\omega)$ because it has a square that is a member of a Fourier-transform pair:
+\begin{align}
+    \FT[F(t)] &= [f(\omega)]^2
+    \\ \label{eq:F}
+    F(t) &= \sqrt{\frac{\pi}{8}}\,\left(1 + \frac{|t|}{s}\right)\,\exp -\frac{|t|}{s}
+    ~.
+\end{align}
+This latter function is also known as the Mat\'ern $3/2$ kernel function; it will become the kernel function for the Gaussian process when we take the limit.
+In the limit $p\rightarrow\infty$, then, the specific example of a feature-weighted OLS given here becomes, in the limit, a GP with a kernel function very close to
+\begin{align}
+    k(t_i,t_{i'}) &= F(t_i-t_{i'})
+    \\
+    &= \sqrt{\frac{\pi}{8}}\,\left(1 + \frac{|t_i - t_{i'}|}{s}\right)\,\exp -\frac{|t_i - t_{i'}|}{s}
+    ~.
+\end{align}
+The comparison of the GP with this kernel to the equivalent feature-weighted OLS with large (but finite) number of parameters $p$ is shown in \figurename~\ref{fig:gp}.
+\begin{figure}[t]
+    \begin{mdframed}
+    \caption{Comparison of feature-weighted ordinary least squares with a Gaussian process. The figure shows the OLS fit, the feature-weighted version with the particular feature weighting given in (\ref{eq:f}), and the GP fit using the kernel (\ref{eq:F}) that is the Fourier transform of the square of the feature weighting. The feature-weighted fit and the GP are essentially identical, as expected.}
+    \label{fig:gp}
+    \end{mdframed}
+\end{figure}
+
+HOGG: Remind the reader that there are hundreds of known kernel functions you can have here, and hundreds of corresponding weighting functions $f(\omega)$, and that is just in this Fourier basis; there are more in other bases (polynomial, wavelet, and so on).
+
+RANDOM CONJECTURAL SENTENCE; move earlier: Provided that the spacing of the Fourier modes in frequency space is $\Delta\omega\ll 1 / \Delta t_{\max}$ and the maximum frequency $\floor{p / 2}\,\Delta\omega \gg 1 / \min(s, \Delta t_{\min})$, where
+\begin{align}
+    \Delta t_{\min} = \min_{i\ne j}|t_i - t_j|
+    \\
+    \Delta t_{\max} = \max_{i,j}|t_i - t_j|
+    ~,
+\end{align}
+the OLS with feature weights $f(\omega)$ will be very similar to the mean of a GP with kernel $k(\Delta t) = \FT[f^2]$.
+
+At the end of \sectionname~\ref{sec:fwols}, we discussed including not just feature weights in a matrix $\Lambda^{-1}$ but also data weights in a matrix $C^{-1}$. The GP also permits this, and it is often a very good idea. The generalization of equations (\ref{eq:LambdaC1}) and (\ref{eq:LambdaC2}) to the GP case is 
+\begin{equation}
+    \hat{Y}_\ast = K_\ast\,(K + C)^{-1}\,Y
+    ~.
+\end{equation}
+As before, in contexts where you have independent uncertainties on each element $y_i$ of your training data $Y$, $C^{-1}$ would naturally be set to the diagonal matrix containing the inverses of the variances of those uncertainties.
+This form is used a lot in astronomy and physics (HOGG CITE SOME THINGS?) and it is also the standard form given for the Wiener filter (CITE).
+
+\section{\raggedright Interpolators, running means, filters, and so forth}
+
+HOGG: MAYBE THIS BECOMES JUST PART OF THE DISCUSSION?
+
+HOGG: In what sense are all these things the same things? All I got is that if they are linear---meaning that the prediction $\hat{Y}_\ast$ can be written as a linear operator acting on the training data $Y$---then they probably can be written in some form like feature-weighted OLS in the $p>>n$ regime.
+
+\section{Uncertainties on the predictions}\label{sec:uncertainty}
+
+Often you need to compute not just a prediction, but also an uncertainty on that prediction.
+How faithfully you must compute that uncertainty will depend strongly on the context in which you are doing the fitting or interpolation.
+However, it is often the case in the physical sciences that predictions are required to come with good or conservative estimates of uncertainty.
+There are four-ish sources of uncertainty in the predictions you are making in problems like these:
+(1)~The data points you have $y_i$ are individually noisy.
+(2)~There are finitely many of those data points (there are $n$ of them) and there are gaps between them in the location space $t$.
+(3)~The data points might have uncertain locations or location measurements $t_i$.
+(4)~And the predictions you make depend on hyper-parameter choices, such as the form of the basis, the number of parameters $p$, and any regularization or feature weighting.
+These four different sources of uncertainty propagate differently and are differently ``simple'' to deal with.
+
+In particular... (1) and (2) easy, (3) and (4) hard.
+
+HOGG: If you have a full likelihood function, you can use it to get uncertainties. Give example! But this is not conservative; or it makes many strong assumptions. Sometimes you don't even know enough about your data to write down a LF you believe. Give some examples for the different regimes.
+
+HOGG: Bayes has even more assumptions than the LF uncertainty estimates. But gives well-defined uncertainties automatically.
+
+HOGG: If you want to be conservative, use jackknife to get the uncertainties. Explain how this works, and how to implement in the large-$n$ case. Repeat some of the fitting examples but showing the uncertainties as well.
+Give the explicit formula for jackknife, with its dimensionless prefactor.
+Note the similarity between jackknife and cross-validation; that's relevant and important!
+
+HOGG: As for (3): Resample the $t_i$ values maybe? As for (4): Brute-force search? It isn't really possible to do (4) without a model for the behavior of a scientist!! Refer back to the subjectivity of it all.
+
+\section{Implementation notes}\label{sec:implementation}
+
+All of the code used to make the figures for this \documentname\ is available publicly at HOGG WHERE?
+Although the examples are toy, the implementation of everything can be generalized for real-data situations.
+
+Things here about inv(), solve(), lstsq(), and so on. Be sure to talk about the GP as well as the OLS cases here.
+
+How to do a pseudo-inverse that is numerically safe. It requires an RCOND or equivalent.
+
+Note that once $p$ is large enough, if you are using a feature weighting that declines with $p$, at some point, at machine precision, the additional columns you are adding to $X$ are effectively all zeros. That's not a problem if you implement your linear algebra well, but it does mean that your cross-validations will saturate at some $p$ (see the \figurename).
+
+Things here about not constructing operators that are almost entirely zeros.
+
+Set your hyper-parameters by cross-validation. Set $p$, choice of basis, choice of weighting, regularization parameters all this way. Get explicit about CV.
+
+\section{Discussion}
+
+HOGG: What main points did we make; what do we want you to take home? HOGG: Related: Why were we motivated to write this document?
+
+(HOGG: Say something about the case in which you have prior beliefs about the expected values of the parameters. THERE IS A PLACEHOLDER for this in the section about the over-parameterized case.)
+
+TODO:
+\begin{itemize}
+    \item Higher dimensions for the ambient space. Spherical harmonics.
+    \item The practice: design features for linear regression, how many do you choose, avoid pitfalls, when to go to Gaussian processes. Cross-validation. Everything an astronomer needs to know.
+    \item Discuss L1 and sparsity. In general in these flexible contexts, sparsity is usually not important. But if it is important, L1 is a good tool. AND you can get both the smoothness you want AND the sparsity if you do feature weighting and L1 (instead of feature weighting and L2, as we do here). Cite (https://arxiv.org/pdf/1308.0759.pdf).
+    \item make a bibliography and cite stuff!
+    \item Make sure this appears above in the uncertainties section: What do you do when your locations $t_i$ are themselves noisy or uncertain? Recall our fundamental assumption. There is a literature on this, and it isn't easy. One option: Linearize and add variances. Only works for uncertainties that are small wrt model features. Another option: Infer the $t_i$. That's often extremely hard.
+\end{itemize}
+
+\end{document}
