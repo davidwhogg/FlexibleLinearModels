@@ -11,6 +11,8 @@
 \documentclass[12pt,letterpaper]{article}
 \usepackage[utf8]{inputenc}
 \usepackage{xcolor}
+\usepackage{natbib}
+\usepackage{hyperref}
 
 % Price-Whelan's figure hacks
 \usepackage[framemethod=tikz]{mdframed}
@@ -26,17 +28,28 @@
   shadowcolor=black!05,
   shadowsize=4pt
 }
+% and...
+\newlength{\figurewidth}
+\setlength{\figurewidth}{0.88\textwidth}
 
 % Hogg's issues
 \setlength{\topmargin}{-0.40in}
 \setlength{\headsep}{4ex}
 \setlength{\textheight}{9.20in}
-\setlength{\oddsidemargin}{-0.20in}
+\setlength{\oddsidemargin}{0.75in}
 \setlength{\textwidth}{5.00in}
 \setlength{\parindent}{0.18in}
 \pagestyle{myheadings}
 \markright{\textcolor{gray}{\textsf{\upshape Fitting very flexible models / Hogg \& Villar}}}
 \frenchspacing\sloppy\sloppypar\raggedbottom
+
+% Hogg's really severe issues
+\makeatletter
+\renewcommand\section{\@startsection {section}{1}{\z@}%
+  {-3.5ex \@plus -1ex \@minus -.2ex}%
+  {2.3ex \@plus.2ex}%
+  {\raggedright\normalfont\Large\bfseries}}
+\makeatother
 
 % Math operators and definitions
 \usepackage{amsmath}
@@ -49,6 +62,7 @@
 \newcommand{\documentname}{\textsl{Note}}
 \newcommand{\sectionname}{Section}
 \newcommand{\foreign}[1]{\textsl{#1}}
+\newcommand{\code}[1]{\texttt{#1}}
 
 \begin{document}\thispagestyle{plain}
 
@@ -121,7 +135,7 @@ In other cases you don't.
 The differences in these beliefs and the differences in your objectives will change what methods you choose and how you use and analyze them.
 We'll try to come back to these important \emph{subjective} aspects of regression as we go.
 
-\section{\raggedright Standard linear fitting: Ordinary least squares with a feature embedding}
+\section{Standard linear fitting: Ordinary least squares with a feature embedding}
 
 Our setup will be that there are $n$ scalar data points $y_i$.
 Each of these data points has an associated coordinate or location $t_i$.
@@ -133,6 +147,7 @@ We are going to fit these data $y_i$ with a linear sum of $p$ basis functions $g
 \begin{equation}
     y_i = \sum_{j=1}^p \beta_j\,g_j(t_i) + \mathrm{noise}
     ~,
+\label{eq.model}
 \end{equation}
 where the $p$ values $\beta_j$ are parameters or coefficients of the linear fit. We can assemble the evaluations of the $p$ functions $g_j(t)$ at the $n$ data coordinates $t_i$ into a $n\times p$ design matrix or feature matrix $X$ such that
 \begin{equation}
@@ -143,7 +158,7 @@ The transformation of the $n$ locations $t_i$ into a $n\times p$ matrix $X$ is t
 It is called variously a \emph{feature map} or a \emph{feature embedding}.
 We like ``embedding'' because it (almost always) raises the dimensionality of the locations $t$ into the $p$-dimensional space of the rows of $X$.
 
-For a concrete example, one common choice is to make the feature embedding functions $g_j()$ terms in a Fourier series
+For a concrete example, one common choice is to make the feature embedding functions $g_j(t)$ terms in a Fourier series
 \begin{align}\label{eq:basis}
     g_j(t) &= \left\{\begin{array}{ll}
             \cos\omega_j\,t & \mbox{for $j$ odd} \\
@@ -154,10 +169,11 @@ For a concrete example, one common choice is to make the feature embedding funct
 \end{align}
 where $T$ is a (large) length-scale in the coordinate space ($t$ space) and $\floor{j/2}$ indicates the floor of $j/2$ (integer division).
 Example functions $g_j(t)$ from this basis are shown in \figurename~\ref{fig:basis}.
-Alternative common choices would be to make the embedding fumctions $g_j()$ polynomials or other kinds of ordered basis functions, such as wavelets or spherical harmonics (the latter if, say, the $t_i$ are positions on the sphere).
+Alternative common choices would be to make the embedding fumctions $g_j(t)$ polynomials or other kinds of ordered basis functions, such as wavelets or spherical harmonics (the latter if, say, the $t_i$ are positions on the sphere).
 \begin{figure}[t]
     \begin{mdframed}
-    \caption{Examples of basis functions $g_j(t)$ from the basis given in equation~(\ref{eq:basis}). This basis was constructed with length-scale parameter $T=3$. The wavelength in the location space decreases, and the frequency increases, with index $j$.}
+    \includegraphics[width=\figurewidth]{paper/fourier.pdf}
+    \caption{Examples of basis functions $g_j(t)$ from the basis given in equation~\eqref{eq:basis}. This basis was constructed with length-scale parameter $T=3$. The wavelength in the location space decreases, and the frequency increases, with index $j$.}
     \label{fig:basis}
     \end{mdframed}
 \end{figure}
@@ -172,7 +188,7 @@ where $\hat{\beta}$ is the $p$-vector (column vector) of the $p$ best-fit values
     \|q\|_2^2 \equiv q^\top\,q
     ~.
 \end{equation}
-This optimization objective (\ref{eq:opt1}) is convex and the optimization problem has a solution in closed form as long as the number of parameters (and features) $p$ is less than the number of training points $n$ (and the matrix $X^\top X$ is invertible):
+This optimization objective \eqref{eq:opt1} is convex and the optimization problem has a solution in closed form as long as the number of parameters (and features) $p$ is less than the number of training points $n$ (and the matrix $X^\top X$ is invertible):
 \begin{equation}
     \hat{\beta} = (X^\top\,X)^{-1}\,X^\top\,Y
     ~.
@@ -191,10 +207,12 @@ The prediction $\hat{Y}_\ast$ for the $y$ values at the test locations $t_\ast$ 
     ~.
 \end{equation}
 Examples of OLS applied to some toy data are shown in \figurename~\ref{fig:ols1}.
-This form (\ref{eq:OLS}) of the prediction of new test data is called ordinary least squares (OLS). It has many good properties, some of which are encoded in the Gauss--Markov theorem.
-SOLEDAD: PUT WORDS HERE ABOUT WHAT IS PROMISED BY GAUSS--MARKOV. ALSO: REFERENCE?
+This form \eqref{eq:OLS} of the prediction of new test data is called ordinary least squares (OLS). It has many good properties, some of which are encoded in the Gauss--Markov theorem.
+In particular, if the noise contributions in the model given in equation \eqref{eq.model} are uncorrelated, has zero mean, and equal variances for $i=1,\ldots, n$ then the Gauss--Markov theorem states that the OLS estimator has the lowest variance within the class of unbiased estimators that are linear in $Y$ (see, for example, \citealt{esl}, Ch 3).
+
 \begin{figure}[t]
     \begin{mdframed}
+    \includegraphics[width=\figurewidth]{paper/OLS-under.pdf}
     \caption{Ordinary least-squares (OLS) fits (continuous lines) to a set of example data points (black dots). Fits are shown for different values of the number of basis functions $p$; there are $n=23$ data points. The data points $y_i$ were generated using a function that does not reside in the function space spanned by the basis. Here the $X_\ast$ matrices used in the predictions $\hat{Y}_\ast$ were generated from a fine grid of points in the location coordinate $t$; the plots of the fine grid of predictions are the continuous lines. The fits with larger $p$ have more flexibility to fit the data than the fit with $p=3$, but the fit at the highest $p$ shows evidence of over-fitting.}
     \label{fig:ols1}
     \end{mdframed}
@@ -202,11 +220,11 @@ SOLEDAD: PUT WORDS HERE ABOUT WHAT IS PROMISED BY GAUSS--MARKOV. ALSO: REFERENCE
 
 \section{Discussion and extensions of OLS}
 
-The prediction (\ref{eq:OLS}) when $p<n$ (the under-paraemeterized or traditional regime) is \emph{affine invariant} in that $p$-dimensional rotations or rescalings of the rectangular $X$ design matrix do not affect predictions.
+The prediction \eqref{eq:OLS} when $p<n$ (the under-paraemeterized or traditional regime) is \emph{affine invariant} in that $p$-dimensional rotations or rescalings of the rectangular $X$ design matrix do not affect predictions.
 That is, if $R$ is an invertible $p\times p$ matrix, the prediction using $X'\leftarrow X\,R$ will be identical to the prediction using the original $X$.
 This affine invariance will return in a different form in the over-parameterized regime, below.
 
-Although the OLS prediction (\ref{eq:OLS}) is affine invariant with respect to $p$-dimensional transformations, it is \emph{not} affine invariant with respect to $n$-dimensional transformations, such as a re-weighting of the input data. Indeed, if you know weights or inverse variances for your data points, conceptually you can put them into a weight matrix $C^{-1}$ (written this way to emphasize that reweighting is usually inverse-variance weighting) and write
+Although the OLS prediction \eqref{eq:OLS} is affine invariant with respect to $p$-dimensional transformations, it is \emph{not} affine invariant with respect to $n$-dimensional transformations, such as a re-weighting of the input data. Indeed, if you know weights or inverse variances for your data points, conceptually you can put them into a weight matrix $C^{-1}$ (written this way to emphasize that reweighting is usually inverse-variance weighting) and write
 \begin{equation}
     \hat{Y}_\ast = X_\ast\,(X^\top\,C^{-1}\,X)^{-1}\,X^\top\,C^{-1}\,Y
     ~,
@@ -221,6 +239,7 @@ It is also called chi-squared fitting because it optimizes the scalar objective 
 In \figurename~\ref{fig:wls} a comparison of OLS and WLS is shown, for a case of non-trivial data weights, where the data weights are set to be the inverse squares of individual data-point uncertainties.
 \begin{figure}[t]
     \begin{mdframed}
+    \includegraphics[width=\figurewidth]{paper/WLS.pdf}
     \caption{Comparison of ordinary least-squares (OLS) and weighted least-squares (WLS) fits (continuous lines) to the example data (black dots). In order to illustrate the differences, we assigned non-trivial error bars to the data. The error bars are ignored in the OLS fit, but in the WLS fit, the weight matrix $C^{-1}$ is diagonal with the diagonal entries set to the inverses of the squares of those error bars. The WLS fit ``pays less attention to'' the points on the left with the largest error bars.}
     \label{fig:wls}
     \end{mdframed}
@@ -247,6 +266,7 @@ In the language of Bayesian inference, $\lambda$ can be seen as a prior variance
 The salutary effect of the ridge regularization is shown in \figurename~\ref{fig:ridge}.
 \begin{figure}[t]
     \begin{mdframed}
+    \includegraphics[width=\figurewidth]{paper/ridge.pdf}
     \caption{Comparison of ordinary least-squares (OLS) and ridge-regression fits (continuous lines) to the example data (black dots). In order to illustrate the differences, we chose the $p=21$-parameter fit, which shows evidence of over-fitting at the edges of the fit range. The regularized fit looks more sensible, though it fits the individual data points less precisely. The choice of regularization parameter $\lambda$ matters; here we used $\lambda=0.1$ (chosen arbitrarily).}
     \label{fig:ridge}
     \end{mdframed}
@@ -254,7 +274,7 @@ The salutary effect of the ridge regularization is shown in \figurename~\ref{fig
 
 The ridge brings with it a choice: How to set the hyper-parameter $\lambda$?
 We generally recommend cross-validation, to be discussed below in \sectionname~\ref{sec:dd}.
-Ridge regression is not affine invariant in the sense that the standard OLS prediction (\ref{eq:OLS}) is; that is, the effect of the regularization depends on the amplitudes and linear combinations of features placed in the feature matrix.
+Ridge regression is not affine invariant in the sense that the standard OLS prediction \eqref{eq:OLS} is; that is, the effect of the regularization depends on the amplitudes and linear combinations of features placed in the feature matrix.
 This will become important later when we consider feature weights below.
 It is also case that the regularization need not be proportional to the identity matrix; in principle any positive definite matrix $\Lambda$ could be used in place of $\lambda\,I$; this makes sense to consider when you have detailed prior beliefs about all the parameters $\beta_j$ or if those parameters are measured with different units (say).
 
@@ -268,7 +288,7 @@ You can combine both the point weighting from WLS and the generalized ridge regr
 This form has good properties for many real-world physics applications, where data-point error bars are often known, and functions are often expected to be smooth.
 HOGG: Say something about units here, to set up a subsequent discussion.
 
-\section{\raggedright Over-parameterization}
+\section{Over-parameterization}
 
 We are taught folklore, at a young age, that we can never fit for more parameters than we have data. That is, we can never work at $p>n$.
 This isn't true!
@@ -297,11 +317,12 @@ In the over-parameterized case ($p>n$), the prediction looks like
     ~,
 \end{equation}
 provided that $X\,X^\top$ is invertible (which will usually be the case).
-Like (\ref{eq:OLS}), this prediction is \emph{also} called ordinary least squares (OLS), or sometimes ``min-norm least-squares'' to emphasize the degeneracy-breaking choice.
+Like \eqref{eq:OLS}, this prediction is \emph{also} called ordinary least squares (OLS), or sometimes ``min-norm least-squares'' to emphasize the degeneracy-breaking choice.
 Examples of OLS fits in the over-parameterized regime are shown in \figurename~\ref{fig:ols2}.
 Note that the fits with different numbers of parameters $p$ lead to very different predictions, but they all go through the data points exactly.
 \begin{figure}[t]
     \begin{mdframed}
+    \includegraphics[width=\figurewidth]{paper/OLS-over.pdf}
     \caption{Ordinary least-squares (OLS) or min-norm least-squares fits (continuous lines) to a set of example data points (black dots), but now for a few over-parameterized cases. There are $n=23$ data points. As in \figurename~\ref{fig:ols1}, the data points $y_i$ were generated using a function that does not precisely reside in the function space spanned by the basis. The three fits are very different, but they all go through all the data points exactly. As $p$ gets large, the fit function approaches $y=0$ almost everywhere; this is a consequence of Parseval's Theorem (see text).}
     \label{fig:ols2}
     \end{mdframed}
@@ -312,19 +333,18 @@ This behavior is a direct consequence of Parseval's Theorem (CITE), which states
 This means that the integral over frequency of the square of the Fourier transform is equal (up to a factor of $2\pi$) to the integral over location of the square of the original function.
 Thus the min-norm solution delivered by OLS, which chooses the interpolating function that minimizes the squares of the component amplitudes in the Fourier basis used to make \figurename~\ref{fig:ols2} will also choose the interpolating function that minimizes the square of the value of the function.
 It will try to stay as close to $y=0$ as possible.
-SOLEDAD: CHECK WORDING.
 
-The two equations for OLS---(\ref{eq:OLS}) and (\ref{eq:OLS2})---can be unified into one equation (and also generalized to handle non-invertible matrices $X^\top X$ and $X\,X^\top$) if we define the pseudo-inverse $X^\dagger$:
+The two equations for OLS---\eqref{eq:OLS} and \eqref{eq:OLS2}---can be unified into one equation (and also generalized to handle non-invertible matrices $X^\top X$ and $X\,X^\top$) if we define the pseudo-inverse $X^\dagger$:
 \begin{equation}\label{eq:OLS3}
     \hat{Y}_\ast = X_\ast\,X^\dagger\,Y
-    ~,
+    ~.
 \end{equation}
-where the pseudo-inverse is the matrix made by inverting the singular values and transposing.
-That is, if the singular-value decomposition (SVD) of $X$ is $U\,S\,V$, with $S$ diagonal, the SVD of $X^\dagger$ is $V^\top\,S_{\text{nonzero}}^{-1}\,U^\top$, where $S_{\text{nonzero}}^{-1}$ contains the inverses of the non-zero elements of $S$, and zeros where $S$ is zero. SOLEDAD IS THERE A BETTER NOTATION OR EXPLANATION HERE? SHOULD I BREAK THIS OUT INTO EQUATIONS? (SOLEDAD SAYS: Define pseudo-inverse for a diagonal matrix and then use SVD and reduce to the previously stated definition.)
-This pseudo-inverse form (\ref{eq:OLS3}) of OLS is extremely general: It works for both the $p\le n$ and $p>n$ cases, and it works when the $X\,X^\top$ or $X^\top\,X$ matrices are not invertible.
+The pseudo-inverse of a diagonal matrix is defined as the diagonal matrix made by inverting the non-zero diagonal entries. And for a non-diagonal matrix the pseudo-inverse is defined by taking the singular-value decomposition (SVD) of $X$, $X=U\,S\,V$, with $S$ diagonal and $U,V$ orthogonal, then $X^\dagger \equiv V^\top\,S^{\dagger}\,U^\top$.
+
+This pseudo-inverse form \eqref{eq:OLS3} of OLS is extremely general: It works for both the $p\le n$ and $p>n$ cases, and it works when the $X\,X^\top$ or $X^\top\,X$ matrices are not invertible.
 There can be significant numerical issues with implementing the pseudo-inverse; we comment on those in \sectionname~\ref{sec:implementation}.
 
-\section{\raggedright Feature weighting}\label{sec:fwols}
+\section{Feature weighting}\label{sec:fwols}
 
 The OLS prediction for $p>n$ is \emph{not} affine invariant with respect to $p$-dimensional rotations or rescalings.
 That is, rotations and scalings in the feature space \emph{will} affect predictions.
@@ -343,7 +363,7 @@ which can also be written as
     \hat{\beta} = \lim_{\lambda\rightarrow 0^+}\left[\arg\min_\beta \|Y - X\,\beta\|_2^2 + \lambda\,\|\Lambda^{1/2}\beta\|_2^2\right]
     ~.
 \end{equation}
-This optimization penalizes more strongly the parameters $\beta_j$ corresponding to features $g_j()$ with larger values of $[\Lambda^{1/2}]_{jj}$.
+This optimization penalizes more strongly the parameters $\beta_j$ corresponding to features $g_j(t)$ with larger values of $[\Lambda^{1/2}]_{jj}$.
 
 HOGG: Remind the readers who prefer obvious scalar forms that $\|\Lambda^{-1/2}\,\beta\|_2^2 = \beta^\top\,\Lambda^{-1}\,\beta$. That's a gauge-invariant object (if $\beta$ and $\Lambda$ are gauge-invariant objects themselves).
 
@@ -358,12 +378,13 @@ where $s$ is a hyper-parameter controlling the (inverse) width of the weighting 
     [\Lambda^{-1}]_{jj} = [f(\omega_j)]^2
     ~.
 \end{equation}
-We have chosen this form (\ref{eq:f}) for $f(\omega)$ for specific reasons that will become obvious below.
+We have chosen this form \eqref{eq:f} for $f(\omega)$ for specific reasons that will become obvious below.
 The introduction of the feature weights dramatically changes the predictions; this is shown in \figurename~\ref{fig:fwols}.
 High frequencies are suppressed and the prediction becomes smooth.
 \begin{figure}[t]
     \begin{mdframed}
-    \caption{Comparison of ordinary least squares (OLS) to OLS with a specific feature weighting. The feature-weighting function is given in the text in equations~(\ref{eq:f}) and (\ref{eq:lambdainv}). When the high-frequency features are weighted down, the min-norm solution gives them small amplitudes, making the fit smoother.}
+    \includegraphics[width=\figurewidth]{paper/weighted-OLS.pdf}
+    \caption{Comparison of ordinary least squares (OLS) to OLS with a specific feature weighting. The feature-weighting function is given in the text in equations~\eqref{eq:f} and \eqref{eq:lambdainv}. When the high-frequency features are weighted down, the min-norm solution gives them small amplitudes, making the fit smoother.}
     \label{fig:fwols}
     \end{mdframed}
 \end{figure}
@@ -382,9 +403,9 @@ HOGG: Now do the full generalization with $C$ and $\Lambda$ and explain how the 
 \end{align}
 Either leave the proof to the reader or make it an exercise HOGG: Check the units. And continue discussion of connections to Bayesian inference. Explain that these forms are good because they relieve the fits of the burden of going exactly through every data point. This is more responsive to the real situation of noisy data, and permits smoother solutions.
 
-\section{\raggedright How to set the number of parameters (and other hyper-parameters)}\label{sec:dd}
+\section{How to set the number of parameters (and other hyper-parameters)}\label{sec:dd}
 
-There is a lot of literature analyzing the performance of linear regressions as a function of the sizes $n$ and $p$, regularization strengths and forms, and so on (for example, SOLEDAD CITE AND CITE).
+There is a lot of literature analyzing the performance of linear regressions as a function of the sizes $n$ and $p$, regularization strengths and forms, and so on (for example, \citealt{bartlett2020benign}, \citealt{hastie2019surprises} ).
 They often refer to the ``risk'', which is a statistics term for the expected squared error (mistake) made when predicting new data not in your training set.
 In order to deliver values or bounds on the risk, this literature depends on knowing how the data were generated, or the family of distributions from which the data ($X$ and $Y$ in our nomenclature) were drawn.
 In the Real World~(tm), you don't get this luxury.
@@ -393,7 +414,24 @@ Indeed, understanding the generating process of the world is the goal of investi
 
 ... How do we look at the empirical risk as a function of $p$? That is, introduce cross-validation. Emphasize its particular value for very small values of $n$, where you don't want to hold out lots of data.
 
-... HOGG: PLOTS showing cross-validation; the method and the results.
+... HOGG: Figure~\ref{fig:LOO1} illustrates the process of leave-one-out fitting and prediction.
+\begin{figure}[t]
+    \begin{mdframed}
+    \includegraphics[width=\figurewidth]{paper/LOO.pdf}
+    \caption{A demonstration of leave-one-out cross-validation for one particular model. The 23 lines are the 23 fits, for each of which one data point was held out. Also ploted on each of the 23 lines is the prediction made for that fit's held-out data point. HOGG anything else to say here?}
+    \label{fig:LOO1}
+    \end{mdframed}
+\end{figure}
+
+... HOGG: Figure~\ref{fig:LOO2} shows the mean-squared leave-one-out cross-validation estimate of mean squared prediction error as a function of the number of features $p$ for the feature-weighted OLS and for the limiting Gaussian process.
+\begin{figure}[t]
+    \begin{mdframed}
+    \includegraphics[width=\figurewidth]{paper/cross-validation.pdf}
+    \caption{Leave-one-out cross-validation estimates of mean squared prediction error for the feature-weighted OLS fits, as a function of the number of features $p$. In detail the first (lowest-$t$) and last (highest-$t$) data points were not used in computing the mean squared error. Note that the predictions are much, much worse at $p\approx n$ than they are at very low or very high $p$. HOGG THIS FIGURE CAPTION IS NOT COMPLETE}
+    \label{fig:LOO2}
+    \end{mdframed}
+\end{figure}
+For the cross-validation we excluded the end points; that is, for robustness, we didn't leave out and predict the first and last point. That choice isn't necessarily justifiable! HOGG say more things here.
 
 Now say things about how things go to h*ck when the number of parameters $p$ gets close to the number of data points $n$.
 
@@ -405,7 +443,7 @@ HOGG: The CV MSE gets really \emph{good} at particular values of $p$. That's not
 
 HOGG: ADD SOMEWHERE ABOVE HERE: You might feel uncomfortable with dropping individual points in this problem, since the points are regularly spaced to begin with, and become irregularly spaced when you leave one out. How much does this matter? It probably does matter in detail, but you don't have much choice in problems like this. All empirical measures of predictive accuracy have these kinds of problems.
 
-\section{\raggedright The Gaussian process: The limit of infinite features}
+\section{The Gaussian process: The limit of infinite features}
 
 The Gaussian process (GP) is a non-parametric regression that takes training data $y_i$ at coordinates $t_i$, plus a kernel function, and makes predictions $\hat{y}_\ast$ for new data at new positions $t_\ast$.
 The Gaussian process math looks like
@@ -418,7 +456,7 @@ where $K_\ast$ is the rectangular kernel matrix between test locations $t_\ast$ 
     [K]_{i,i'} = k(t_i,t_{i'})
     ~,
 \end{equation}
-where $k()$ is a non-negative definite definite kernel function.
+where $k(\cdot,\cdot)$ is a non-negative definite definite kernel function.
 
 HOGG: What does it mean for a kernel function to be non-negative definite?
 
@@ -432,6 +470,7 @@ There is a strong connection between OLS and the GP. In particular, when the fea
     \\
     \lim_{p\rightarrow\infty} X_\ast\,\Lambda^{-1}\,X^\top &= K_\ast
     ~,
+    \label{eq.limit}
 \end{align}
 where $\Lambda^{-1}$ is the diagonal matrix of weights, and element $i,i'$ of $K$ is obtained by evaluating a kernel function $k(t_i,t_{i'})$.
 Equivalently, the limit is
@@ -443,9 +482,9 @@ where we have used the diagonality of $\Lambda$ to make a single sum over $j$.
 The specific form of the kernel function $k(\cdot,\cdot)$ depends on the basis (the features) we choose, and the weighting of the basis functions in the OLS.
 
 The connection between the infinite basis chosen (the form and weighting of the features) and the kernel function is governed by Mercer's theorem (CITE).
-However, if the basis is Fourier, as we chose above in (\ref{eq:basis}), and the spacing between modes ($\Delta\omega =\omega_{j+2}-\omega_j$) is small enough, the kernel becomes very close to the Fourier transform of the square of the weighting function $f(\omega)$ we use to weight the features.
+However, if the basis is Fourier, as we chose above in \eqref{eq:basis}, and the spacing between modes ($\Delta\omega =\omega_{j+2}-\omega_j$) is small enough, the kernel becomes very close to the Fourier transform of the square of the weighting function $f(\omega)$ we use to weight the features.
 
-That is, in the case of the specific example of weight function $f(\omega)$ given in equation (\ref{eq:f}), we can connect our feature-weighted OLS to an equivalent GP if we know the fourier transform of the square of $f(\omega)$. We chose that specific form for $f(\omega)$ because it has a square that is a member of a Fourier-transform pair:
+That is, in the case of the specific example of weight function $f(\omega)$ given in equation \eqref{eq:f}, we can connect our feature-weighted OLS to an equivalent GP if we know the fourier transform of the square of $f(\omega)$. We chose that specific form for $f(\omega)$ because it has a square that is a member of a Fourier-transform pair:
 \begin{align}
     \FT[F(t)] &= [f(\omega)]^2
     \\ \label{eq:F}
@@ -456,42 +495,39 @@ This latter function is also known as the Mat\'ern $3/2$ kernel function; it wil
 In the limit $p\rightarrow\infty$, then, the specific example of a feature-weighted OLS given here becomes, in the limit, a GP with a kernel function very close to
 \begin{align}
     k(t_i,t_{i'}) &= F(t_i-t_{i'})
-    \\
+    \\ \label{eq:k}
     &= \sqrt{\frac{\pi}{8}}\,\left(1 + \frac{|t_i - t_{i'}|}{s}\right)\,\exp -\frac{|t_i - t_{i'}|}{s}
     ~.
 \end{align}
-The comparison of the GP with this kernel to the equivalent feature-weighted OLS with large (but finite) number of parameters $p$ is shown in \figurename~\ref{fig:gp}.
+Provided that the spacing of the Fourier modes in frequency space is $\Delta\omega\ll 1 / \Delta t_{\max}$ and the maximum frequency $\floor{p / 2}\,\Delta\omega \gg 1 / \min(s, \Delta t_{\min})$, where
+\begin{align}
+    \Delta t_{\min} \equiv \min_{i\ne j}|t_i - t_j|
+    \\
+    \Delta t_{\max} \equiv \max_{i,j}|t_i - t_j|
+    ~,
+\end{align}
+it will be true that the OLS with feature weights $f(\omega)$ will be very similar to the mean of a GP with kernel $k(\Delta t) = \FT[f^2]$.
+The comparison of the OLS and GP is shown in \figurename~\ref{fig:gp}.
 \begin{figure}[t]
     \begin{mdframed}
-    \caption{Comparison of feature-weighted ordinary least squares with a Gaussian process. The figure shows the OLS fit, the feature-weighted version with the particular feature weighting given in (\ref{eq:f}), and the GP fit using the kernel (\ref{eq:F}) that is the Fourier transform of the square of the feature weighting. The feature-weighted fit and the GP are essentially identical, as expected.}
+    \includegraphics[width=\figurewidth]{paper/GP.pdf}
+    \caption{Comparison of feature-weighted ordinary least squares with a Gaussian process. The figure shows the OLS fit, the feature-weighted version with the particular feature weighting given in \eqref{eq:f}, and the GP fit using the kernel \eqref{eq:F} that is the Fourier transform of the square of the feature weighting. The feature-weighted fit and the GP are essentially identical, as expected.}
     \label{fig:gp}
     \end{mdframed}
 \end{figure}
 
 HOGG: Remind the reader that there are hundreds of known kernel functions you can have here, and hundreds of corresponding weighting functions $f(\omega)$, and that is just in this Fourier basis; there are more in other bases (polynomial, wavelet, and so on).
 
-RANDOM CONJECTURAL SENTENCE; move earlier: Provided that the spacing of the Fourier modes in frequency space is $\Delta\omega\ll 1 / \Delta t_{\max}$ and the maximum frequency $\floor{p / 2}\,\Delta\omega \gg 1 / \min(s, \Delta t_{\min})$, where
-\begin{align}
-    \Delta t_{\min} = \min_{i\ne j}|t_i - t_j|
-    \\
-    \Delta t_{\max} = \max_{i,j}|t_i - t_j|
-    ~,
-\end{align}
-the OLS with feature weights $f(\omega)$ will be very similar to the mean of a GP with kernel $k(\Delta t) = \FT[f^2]$.
+HOGG: The kernel in equation \eqref{eq:k} is a stationary kernel, meaning it depends only on absolute values of time differences $|t - t'|$. Not all $p\rightarrow\infty$ kernels will be stationary. The limit $p\rightarrow\infty$ of $X\,\Lambda^{-1}\,X^\top$ in \eqref{eq.limit} leads to a stationary kernel $k(\cdot,\cdot)$ because the feature embedding in $X$ is a set of sines and cosines.
+Sines and cosines form a basis for translation-invariant function spaces. SOLEDAD: IS THIS WORDING OKAY?
 
-At the end of \sectionname~\ref{sec:fwols}, we discussed including not just feature weights in a matrix $\Lambda^{-1}$ but also data weights in a matrix $C^{-1}$. The GP also permits this, and it is often a very good idea. The generalization of equations (\ref{eq:LambdaC1}) and (\ref{eq:LambdaC2}) to the GP case is 
-\begin{equation}
+At the end of \sectionname~\ref{sec:fwols}, we discussed including not just feature weights in a matrix $\Lambda^{-1}$ but also data weights in a matrix $C^{-1}$. The GP also permits this, and it is often a very good idea. The generalization of equations \eqref{eq:LambdaC1} and \eqref{eq:LambdaC2} to the GP case is 
+\begin{equation}\label{eq:gpC}
     \hat{Y}_\ast = K_\ast\,(K + C)^{-1}\,Y
     ~.
 \end{equation}
-As before, in contexts where you have independent uncertainties on each element $y_i$ of your training data $Y$, $C^{-1}$ would naturally be set to the diagonal matrix containing the inverses of the variances of those uncertainties.
-This form is used a lot in astronomy and physics (HOGG CITE SOME THINGS?) and it is also the standard form given for the Wiener filter (CITE).
-
-\section{\raggedright Interpolators, running means, filters, and so forth}
-
-HOGG: MAYBE THIS BECOMES JUST PART OF THE DISCUSSION?
-
-HOGG: In what sense are all these things the same things? All I got is that if they are linear---meaning that the prediction $\hat{Y}_\ast$ can be written as a linear operator acting on the training data $Y$---then they probably can be written in some form like feature-weighted OLS in the $p>>n$ regime.
+As before, in contexts where you have independent uncertainties on each element $y_i$ of your training data $Y$, $C^{-1}$ would naturally be set to the diagonal matrix containing the inverses of the variances of those uncertainties (so $C$ would contain the variances).
+This form \eqref{eq:gpC} is used a lot in astronomy and physics (HOGG CITE SOME THINGS?) and it is also the standard form given for the Wiener filter (CITE).
 
 \section{Uncertainties on the predictions}\label{sec:uncertainty}
 
@@ -507,6 +543,8 @@ These four different sources of uncertainty propagate differently and are differ
 
 In particular... (1) and (2) easy, (3) and (4) hard.
 
+SOLEDAD SAYS: Maybe re-order 1 - 3 - 2 - 4.
+
 HOGG: If you have a full likelihood function, you can use it to get uncertainties. Give example! But this is not conservative; or it makes many strong assumptions. Sometimes you don't even know enough about your data to write down a LF you believe. Give some examples for the different regimes.
 
 HOGG: Bayes has even more assumptions than the LF uncertainty estimates. But gives well-defined uncertainties automatically.
@@ -515,14 +553,17 @@ HOGG: If you want to be conservative, use jackknife to get the uncertainties. Ex
 Give the explicit formula for jackknife, with its dimensionless prefactor.
 Note the similarity between jackknife and cross-validation; that's relevant and important!
 
-HOGG: As for (3): Resample the $t_i$ values maybe? As for (4): Brute-force search? It isn't really possible to do (4) without a model for the behavior of a scientist!! Refer back to the subjectivity of it all.
+HOGG: As for (3): Resample the $t_i$ values maybe? Another option is to linearize if the uncertainties are small wrt function changes (see, eg GP literature). Or infer and marginalize out (ferociously expensive).
+
+HOGG: As for (4): Brute-force search? It isn't really possible to do (4) without a model for the behavior of a scientist!! Refer back to the subjectivity of it all.
 
 \section{Implementation notes}\label{sec:implementation}
 
 All of the code used to make the figures for this \documentname\ is available publicly at HOGG WHERE?
-Although the examples are toy, the implementation of everything can be generalized for real-data situations.
+Although the examples are toys, the implementation of everything can be generalized for real-data situations.
+In that code, there are some aspects of the linear-algebra implementation that might seem odd....HOGG
 
-Things here about inv(), solve(), lstsq(), and so on. Be sure to talk about the GP as well as the OLS cases here.
+Things here about \code{inv(A) @ b}, \code{solve(A, b)}, \code{lstsq(A, b, rcond=tiny)}, and so on. Be sure to talk about the GP as well as the OLS cases here.
 
 How to do a pseudo-inverse that is numerically safe. It requires an RCOND or equivalent.
 
@@ -543,8 +584,13 @@ TODO:
     \item Higher dimensions for the ambient space. Spherical harmonics.
     \item The practice: design features for linear regression, how many do you choose, avoid pitfalls, when to go to Gaussian processes. Cross-validation. Everything an astronomer needs to know.
     \item Discuss L1 and sparsity. In general in these flexible contexts, sparsity is usually not important. But if it is important, L1 is a good tool. AND you can get both the smoothness you want AND the sparsity if you do feature weighting and L1 (instead of feature weighting and L2, as we do here). Cite (https://arxiv.org/pdf/1308.0759.pdf).
-    \item make a bibliography and cite stuff!
-    \item Make sure this appears above in the uncertainties section: What do you do when your locations $t_i$ are themselves noisy or uncertain? Recall our fundamental assumption. There is a literature on this, and it isn't easy. One option: Linearize and add variances. Only works for uncertainties that are small wrt model features. Another option: Infer the $t_i$. That's often extremely hard.
+    \item cite stuff!
 \end{itemize}
+
+HOGG: In what sense are these flexible models the same as things like interpolators, running means, filters, and so on? All I got is that if they are linear---meaning that the prediction $\hat{Y}_\ast$ can be written as a linear operator acting on the training data $Y$---then they probably can be written in some form like feature-weighted OLS in the $p>>n$ regime.
+
+\raggedright
+\bibliographystyle{authordate1}
+\bibliography{references}
 
 \end{document}
