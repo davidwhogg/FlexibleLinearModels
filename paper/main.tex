@@ -419,26 +419,26 @@ Indeed, understanding the generating process of the world is the goal of investi
 Given a data set (location--data pairs $t_i, y_i$), what is the best way to empirically estimate, from those data, the out-of-sample prediction error---that is, how do you estimate how well you are likely to predict new data?
 The only good answer to this is cross-validation:
 In cross-validation, we leave out a part of the data (in the most extreme form, leave out one single data point at a time), train the model using all but the left-out part, and predict the left-out part. Then this process is iterated over all choices of what part (or point) to leave out.
-This process is illustrated in \figurename~\ref{fig:LOO1}, where we show $23$ fits, each of which is trained to the 22 points left when we leave one of the $n=23$ points out.
+This process is illustrated in \figurename~\ref{fig:loo}, where we show $23$ fits, each of which is trained to the 22 points left when we leave one of the $n=23$ points out.
 Also shown is the prediction, in each leave-one-out fit, for the left-out point.
 \begin{figure}[t]
     \begin{mdframed}
     \includegraphics[width=\figurewidth]{paper/LOO.pdf}
     \caption{A demonstration of leave-one-out cross-validation for one particular model. The 23 lines are the 23 fits, for each of which one data point was held out. Also ploted on each of the 23 lines is the prediction made for that fit's held-out data point. HOGG anything else to say here?}
-    \label{fig:LOO1}
+    \label{fig:loo}
     \end{mdframed}
 \end{figure}
 
 The prediction for the mean-squared error (MSE) for new data is the mean of the square of the differences between the leave-one-out predictions and the left-out data.
 This leave-one-out cross-validation MSE (CVMSE) will be different for different choices for the basis, size ($p$), and regularization of the fits you do.
 It is a fairly reliable and well-studied method for assessing predictive accuracy (HOGG: WHAT TO CITE HERE?), although it does depend on some assumptions (for example, about the distribution of predictive information across individual data points, maybe).
-An example of CVMSE for two models (the feature-weighted OLS and the ridge regression) are shown for our toy data, as a function of the number of features $p$, in \figurename~\ref{fig:LOO2}.
+An example of CVMSE for two models (the feature-weighted OLS and the ridge regression) are shown for our toy data, as a function of the number of features $p$, in \figurename~\ref{fig:cv}.
 The predictive accuracy is a strong function of $p$!
 \begin{figure}[t]
     \begin{mdframed}
     \includegraphics[width=\figurewidth]{paper/cross-validation.pdf}
-    \caption{Leave-one-out cross-validation estimates of mean squared prediction error for the feature-weighted OLS fits, as a function of the number of features $p$. Also shown are the same for ridge regression with $\lambda=0.1$ and also the Gaussian process introduced in \sectionname~\ref{sec:gp} and shown in \figurename~\ref{fig:gp}. The GP result is shown as a flat line because it doesn't have an associated number $p$. In detail the first (lowest-$t$) and last (highest-$t$) data points were not used in computing the mean squared error; that choice is debatable, but we are imagining an assessment of the quality of the \emph{interpolations}, not extrapolations, of these models. Note that the OLS predictions are much, much worse at $p\approx n$ (notice all the orders of magnitude on the vertical axis) than they are at very low or very high $p$, but that ridge regression protects the fits.}
-    \label{fig:LOO2}
+    \caption{Leave-one-out cross-validation estimates of mean squared prediction error for the feature-weighted OLS fits, as a function of the number of features $p$. Also shown are the same for ridge regression with $\lambda=0.1$ and also the Gaussian process introduced in \sectionname~\ref{sec:gp} and shown in \figurename~\ref{fig:gp}. The GP result is shown as a flat line because it doesn't have an associated number $p$. In detail the first (lowest-$t$) and last (highest-$t$) data points were not used in computing the mean squared error; that choice is debatable, but we are imagining an assessment of the quality of the \emph{interpolations}, not extrapolations, of these models. Note that the OLS predictions are much, much worse at $p\approx n$ (check out all the orders of magnitude on the vertical axis) than they are at very low or very high $p$, but that ridge regression doesn't show this behavior.}
+    \label{fig:cv}
     \end{mdframed}
 \end{figure}
 
@@ -573,7 +573,7 @@ There are four-ish sources of uncertainty in the predictions you are making in p
 (4)~And the predictions you make depend on hyper-parameter choices, such as the form of the basis, the number of parameters $p$, and any regularization or feature weighting.
 These four different sources of uncertainty propagate differently and are differently ``simple'' to deal with.
 In particular it turns out that the easiest sources of uncertainty to understand and propagate are those coming from (1)~the noise in the $y_i$ and (2)~the number $n$ and locations $t_i$ of the data.
-The uncertainty coming from (3)~uncertainties in the locations $t_i$, and (4)~model choices are much harder to model and propagate.
+The uncertainties coming from (3)~uncertainties in the locations $t_i$, and (4)~model choices, are both much harder to model and propagate.
 
 HOGG: If you have a full likelihood function, you can use it to get uncertainties. Give example! But this is not conservative; or it makes many strong assumptions. Sometimes you don't even know enough about your data to write down a LF you believe. Give some examples for the different regimes.
 
@@ -581,7 +581,21 @@ HOGG: Bayes has even more assumptions than the LF uncertainty estimates. But giv
 
 HOGG: If you want to be conservative, use jackknife to get the uncertainties. Explain how this works, and how to implement in the large-$n$ case. Repeat some of the fitting examples but showing the uncertainties as well.
 Give the explicit formula for jackknife, with its dimensionless prefactor.
-Note the similarity between jackknife and cross-validation; that's relevant and important!
+\begin{equation}
+    \hat{\Sigma}_\ast = \frac{n-1}{n}\,\sum_i \hat{Y}_{\ast i}\,\hat{Y}_{\ast i}^\top
+    ~,
+\end{equation}
+where $\hat{\Sigma}_\ast$ is the jackknife estimate of the variance tensor of the uncertainty on the full-data prediction $\hat{Y}_\ast$,
+and $\hat{Y}_{\ast i}$ is the estimate of $Y_\ast$ made after \emph{leaving out} the one training point $t_i, y_i$.
+The square-root of the trace of this uncertainty variance (that is, what you might call the jackknife estimate of the standard error) is shown in \figurename~\ref{fig:uncertainty}.
+Note the similarity between jackknife and cross-validation; that's relevant and important; these empirical estimates of uncertainty and prediction error are closely related.
+\begin{figure}[t]
+    \begin{mdframed}
+    \includegraphics[width=\figurewidth]{paper/uncertainty.pdf}
+    \caption{The jackknife-estimated uncertainty on an ordinary least squares fit. What is shown is the diagonal of the empirical jackknife estimate $\hat{\Sigma}$ of the variance tensor on the prediction $\hat{Y}_\ast$ of an OLS fit. In other words, the off-diagonal entries of $\hat{\Sigma}_\ast$ are being ignored here; there are important covariances that are hard to visualize (and beyond our scope). The one-sigma region is larger than the span of the jackknife trials; this is because the jackknife trials are strongly correlated (see text HOGG IS IT THERE?).}
+    \label{fig:uncertainty}
+    \end{mdframed}
+\end{figure}
 
 HOGG: As for (3): Resample the $t_i$ values maybe? Another option is to linearize if the uncertainties are small wrt function changes (see, eg GP literature). Or infer and marginalize out (ferociously expensive).
 
@@ -591,17 +605,43 @@ HOGG: As for (4): Brute-force search? It isn't really possible to do (4) without
 
 All of the code used to make the figures for this \documentname\ is available publicly at HOGG WHERE?
 Although the examples are toys, the implementation of everything can be generalized for real-data situations.
-In that code, there are some aspects of the linear-algebra implementation that might seem odd....HOGG
+In that code, there are some aspects of the linear-algebra implementation that might seem odd.
+Here are some comments.
 
-Things here about \code{inv(A) @ b}, \code{solve(A, b)}, \code{lstsq(A, b, rcond=tiny)}, and so on. Be sure to talk about the GP as well as the OLS cases here.
+Mostly, linear algebra stability comes down to the condition number of the matrix in question.
+This, for our purposes, is the ratio of the largest eigenvalue (for non-negative definite matrices) to the smallest \emph{non-zero} eigenvalue.
+For rectangular matrices it is the ratio of the largest singular value (that is, what you get out of a singular value decomposition) to the smallest nonzero singular value.
 
-How to do a pseudo-inverse that is numerically safe. It requires an RCOND or equivalent.
+When the condition number is large, different linear-algebra approaches will differ.
+For example, the function call \code{solve(A, b)} should give you the best estimate it can for the product $A^{-1}\,b$, whereas the function call \code{dot(inv(A), b)}, which is the same on paper, will give you the dot product between \code{b} and the best estimate that \code{inv()} can find for the inverse of \code{A}.
+When the condition number of $A$ is large, these two values will diverge, and the \code{solve()} will be better (this claim contradicts what is stated in the abstract of \citealt{solve}, but this claim is based on real experiments on real matrices, so we stand by it).
+Use \code{solve(A, b)} and never \code{dot(inv(A), b)}.
 
-Note that once $p$ is large enough, if you are using a feature weighting that declines with $p$, at some point, at machine precision, the additional columns you are adding to $X$ are effectively all zeros. That's not a problem if you implement your linear algebra well, but it does mean that your cross-validations will saturate at some $p$ (see the \figurename).
+If your condition number gets very large, even \code{solve()} can give bad results, because very small eigenvalues of the matrix are being poorly estimated and then inverted.
+That's unstable.
+It is better to zero out those small eigenvalues---it is better to destroy bad information than to use it---and perform a pseudo-inverse in those cases.
+So if you really want to be safe (and you do, here) you should really use \code{lstsq(A, b, rcond=tiny)} instead of \code{solve(A, b)}.
+The \code{lstsq()} function requires a \code{rcond} input, which says at what (dimensionless) precision to zero-out low eigenvalues.
+It usually makes sense to set this dimensionless \code{rcond} input to something like machine precision, which is about \code{1e-16} for our current hardware--software setups.
 
-Things here about not constructing operators that are almost entirely zeros.
+You might think that all of this is academic, but it really isn't when the number of features $p$ is within a factor of a few of the number of data points $n$.
+For example, in our toy-data OLS experiments in this paper with $n=23$, the matrix $X^\top\,X$ has a condition number (ratio of largest eigenvalue to smallest nonzero eigenvalue) that saturates machine precision for the entire range $12 < p < 50$!
 
-Set your hyper-parameters by cross-validation. Set $p$, choice of basis, choice of weighting, regularization parameters all this way. Get explicit about CV.
+Related to this, if you have a choice between formulations that involve an inverse $(X^\top\,X)^{-1}\,X^\top\,Y$ and formulations that involve a pseudo-inverse $X^\dagger\,Y$, you should do the latter, because $X^\top\,X$ has the \emph{square} of the condition number of $X$.
+When you want to execute $X^\dagger\,Y$, as we do in \eqref{eq:OLS3}, you should again use \code{lstsq()}, which was literally designed for these applications; use \code{lstsq(X, Y, rcond=tiny)}.
+This function returns the best estimate it can for $X^\dagger\,Y$, so
+it should be better than computing a pseudo-inverse \code{pinv(X)} and then matrix-multiplying \code{pinv(X)} with \code{Y}.
+Again here it usually makes sense to set this \code{rcond} input to something like machine precision.
+
+Once $p$ is large enough, if you are using a feature weighting with $\Lambda^{-1}$ with diagonal entries $[\Lambda^{-1}]_{jj}$ that decline with $j$, at some point, at machine precision, the additional columns you are adding to $X$ are effectively all zeros.
+They will literally underflow the linear-algebra representation.
+That's not a problem if you implement your linear algebra well (that is, use \code{lstsq()} appropriately), but it does mean that your predictions and cross-validations will saturate at some $p$ (as we see them do in \figurename~\ref{fig:cv}).
+
+In multiple places, but especially \eqref{eq:LambdaC1} and \eqref{eq:LambdaC2}, you are performing operations on matrices that are diagonal ($C$ and $\Lambda$ and their inverses are all diagonal).
+You should avoid ever constructing diagonal matrices.
+You can multiply $X$ or $X^\top$ by a diagonal matrix by just multiplying the rows (or columns) by the diagonal entries.
+And you can invert by just inverting the diagonal entries.
+Avoid constructing and operating on operators that are almost entirely zeros.
 
 \section{Discussion}\label{sec:discussion}
 
@@ -625,13 +665,22 @@ That is the approach in some machine-learning contexts (SOLEDAD CITE HERE).
 The same GP limit would appear at $p\rightarrow\infty$ (provided we choose some random phases too).
 These random-feature approaches have rarely been used in the natural sciences, but they are potentially of interest in the future.
 
-\raggedright
+{\raggedright
 \bibliographystyle{authordate1}
 \bibliography{references}
+}
 
 \appendix
 \section{Mathematical arguments and results}
 
-SOLEDAD says: \emph{Hello World!}
+SOLEDAD: Maybe how you get from the optimization statements to the closed-form solutions, for the under- and over-parameterized cases?
+
+SOLEDAD: Maybe prove the equivalence of the expressions with $C$ and $\Lambda$.
+
+SOLEDAD: Maybe sketch some arguments about double descent?
+
+SOLEDAD: Other math details?
+
+HOGG: Maybe show that lstsq beats solve, which beats inv?
 
 \end{document}
