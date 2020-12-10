@@ -113,7 +113,7 @@ As we will discuss below, these choices ought to be avoided, or made with care.
 In many cases the third kind of choice---about regularization---is made implicitly, not explicitly.
 Here we are going to emphasize this choice and its importance, and its value in improving your results.
 
-Alternatively, if you are unhappy with the three choices of basis, and order, and regularization, you might decide to avoid such decisions and go fully \emph{non-parametric}:
+Alternatively, if you are unhappy with the three choices of basis, order, and regularization, you might decide to avoid such decisions and go fully \emph{non-parametric}:
 Instead of fitting a basis expansion, you can use a strict interpolator (like a cubic spline), or you can fit a Gaussian process to your data.
 Here we will show that the choice of any Gaussian process kernel function is equivalent to choosing a basis and a regularization and letting the number of fit components go to infinity (in a certain way).
 That is, going non-parametric doesn't really get you out of making these choices.
@@ -575,31 +575,52 @@ These four different sources of uncertainty propagate differently and are differ
 In particular it turns out that the easiest sources of uncertainty to understand and propagate are those coming from (1)~the noise in the $y_i$ and (2)~the number $n$ and locations $t_i$ of the data.
 The uncertainties coming from (3)~uncertainties in the locations $t_i$, and (4)~model choices, are both much harder to model and propagate.
 
-HOGG: If you have a full likelihood function, you can use it to get uncertainties. Give example! But this is not conservative; or it makes many strong assumptions. Sometimes you don't even know enough about your data to write down a LF you believe. Give some examples for the different regimes.
+In the best-case scenario, you might have accurate estimates of the variances $[C]_{ii} = \sigma_i^2$ of the noise contributions affecting your training data values $y_i$, the noise might be Gaussian with zero mean, you might have locations $t_i$ that are extremely accurately known, and you might have justifiable prior variances $[\Lambda]_{jj}$ on your parameters $\beta_j$.
+In this case, you can assume that the linear model with $p$ parameters is a good model for your data, and write down a likelihood function and a prior.
+In this best-case scenario, you can turn the Bayesian crank and and deliver a posterior density or a marginalized likelihood for the predicted values $Y_\ast$ at the test locations $t_\ast$.
+The second derivative of the ln of the marginalized likelihood can then be processed into an uncertainty on the predictions $\hat{Y}_\ast$.
+The details of this are way beyond the scope of this \documentname, but this (or a closely related) problem is discussed in some detail by us elsewhere (\citealt{products}).
 
-HOGG: Bayes has even more assumptions than the LF uncertainty estimates. But gives well-defined uncertainties automatically.
+That scenario is best-case, but it does involve a lot of assumptions.
+That is, if you don't trust your estimates of the noise variances, or if you think the noise might be non-Gaussian, or if you don't have plausible prior information, then the likelihood approaches will give poor uncertainty estimates.
+In this sense, it is more conservative to make use of more empirical methods for uncertainty estimation.
+The leading candidates are jackknife or bootstrap resamplings (HOGG CITE SOMETHING?).
+Here we will focus on jackknife.
 
-HOGG: If you want to be conservative, use jackknife to get the uncertainties. Explain how this works, and how to implement in the large-$n$ case. Repeat some of the fitting examples but showing the uncertainties as well.
-Give the explicit formula for jackknife, with its dimensionless prefactor.
-\begin{equation}
-    \hat{\Sigma}_\ast = \frac{n-1}{n}\,\sum_i \hat{Y}_{\ast i}\,\hat{Y}_{\ast i}^\top
+The idea of jackknife resampling is that we make $k$ subsamples of the data, in each of which we have dropped (or held out) a unique fraction $1/k$ of the data.
+The variance of the results (in this case the prediction $\hat{Y}_\ast$) across the jackknife samples can be transformed into an estimate of the variance of the estimator acting on the full data set.
+In the most extreme form---leave-one-out jackknife---we set $k=n$.
+In this case, the jackknife estimate $\hat{\Sigma}_\ast$ of the variance of the best-fit predictions $\hat{Y}_\ast$ is given by
+\begin{equation}\label{eq:jackknife}
+    \hat{\Sigma}_\ast = \frac{n-1}{n}\,\sum_{i=1}^n (\hat{Y}_{\ast i} - \hat{Y}_\ast)\,(\hat{Y}_{\ast i} - \hat{Y}_\ast)^\top
     ~,
 \end{equation}
-where $\hat{\Sigma}_\ast$ is the jackknife estimate of the variance tensor of the uncertainty on the full-data prediction $\hat{Y}_\ast$,
-and $\hat{Y}_{\ast i}$ is the estimate of $Y_\ast$ made after \emph{leaving out} the one training point $t_i, y_i$.
-The square-root of the trace of this uncertainty variance (that is, what you might call the jackknife estimate of the standard error) is shown in \figurename~\ref{fig:uncertainty}.
+where $\hat{Y}_{\ast i}$ is the estimate of $Y_\ast$ made after \emph{leaving out} the one training point $t_i, y_i$, and $\hat{Y}_\ast$ is the estimate made using \emph{all} the data.
+The pre-factor $(n-1)/n$ in \eqref{eq:jackknife} is not anything like the $1/(n-1)$ that you use when you estimate a standard variance; this difference comes from the fact that the jackknife subsamples are extremely correlated; the pre-factor is computed to amplify the jackknife variance into an unbiased estimate of the variance of the estimator $\hat{Y}_\ast$.
+The square-root of the trace of this uncertainty variance $\hat{\Sigma}$ (that is, what you might call the jackknife estimate of the standard error) is shown in \figurename~\ref{fig:uncertainty}.
 Note the similarity between jackknife and cross-validation; that's relevant and important; these empirical estimates of uncertainty and prediction error are closely related.
 \begin{figure}[t]
     \begin{mdframed}
     \includegraphics[width=\figurewidth]{paper/uncertainty.pdf}
-    \caption{The jackknife-estimated uncertainty on an ordinary least squares fit. What is shown is the diagonal of the empirical jackknife estimate $\hat{\Sigma}$ of the variance tensor on the prediction $\hat{Y}_\ast$ of an OLS fit. In other words, the off-diagonal entries of $\hat{\Sigma}_\ast$ are being ignored here; there are important covariances that are hard to visualize (and beyond our scope). The one-sigma region is larger than the span of the jackknife trials; this is because the jackknife trials are strongly correlated (see text HOGG IS IT THERE?).}
+    \caption{The jackknife-estimated uncertainty on an ordinary least squares fit. What is shown is the diagonal of the empirical jackknife estimate $\hat{\Sigma}$ of the variance tensor on the prediction $\hat{Y}_\ast$ of an OLS fit. In other words, the off-diagonal entries of $\hat{\Sigma}_\ast$ are being ignored here; there are important covariances that are hard to visualize (and beyond our scope). The one-sigma region is larger than the span of the jackknife trials; this is because the jackknife trials are strongly correlated.}
     \label{fig:uncertainty}
     \end{mdframed}
 \end{figure}
 
-HOGG: As for (3): Resample the $t_i$ values maybe? Another option is to linearize if the uncertainties are small wrt function changes (see, eg GP literature). Or infer and marginalize out (ferociously expensive).
+These methods---full likelihood analysis and jackknife---take into account (1)~the noise in the data $y_i$ and (2)~the number and spacing of the training data points.
+They do not, by themselves, take into account (3)~the uncertainties on the locations $t_i$.
+There are no simple methods for uncertainty propagation from the locations $t_i$ into the predictions $\hat{Y}_\ast$.
+One option is to resample the $t_i$ according to your uncertainty estimates, and re-do the fits.
+That's potentially expensive, and overly conservative (because it ignores the information about the $t_i$ coming from the $y_i$).
+Another is to linearize the first derivative of the best-fit curve $y(t)$ and propagate uncertainty using those derivatives.
+This is not conservative, because it only works if the location uncertainties are small relative to substantial changes in the slope of the predictions with $t$.
+The most extreme option would be to \emph{simultaneously fit} for the prediction $\hat{Y}_\ast$ and \emph{all} of the noisily measured $t_i$.
+That's a great idea, but that fit would be extremely computationally expensive, and no reasonable fit objective would be convex.
+All of these ideas are out of scope here.
 
-HOGG: As for (4): Brute-force search? It isn't really possible to do (4) without a model for the behavior of a scientist!! Refer back to the subjectivity of it all.
+Finally, in order to take account of (4)~the uncertainty coming from your choices of basis, $p$, regularization, you might have to know (or learn) the distribution over \emph{these} things.
+Since these choices are hyper-parameters, any inference that propagates uncertainties coming from these choices would have to be hierarchical in structure.
+That is way, way out of scope.
 
 \section{Implementation notes}\label{sec:implementation}
 
@@ -608,9 +629,9 @@ Although the examples are toys, the implementation of everything can be generali
 In that code, there are some aspects of the linear-algebra implementation that might seem odd.
 Here are some comments.
 
-Mostly, linear algebra stability comes down to the condition number of the matrix in question.
-This, for our purposes, is the ratio of the largest eigenvalue (for non-negative definite matrices) to the smallest \emph{non-zero} eigenvalue.
-For rectangular matrices it is the ratio of the largest singular value (that is, what you get out of a singular value decomposition) to the smallest nonzero singular value.
+Mostly, linear algebra stability comes down to the \emph{condition number} of the matrix in question.
+The condition number, for our purposes, is the ratio of the largest eigenvalue (for non-negative definite matrices) to the smallest \emph{non-zero} eigenvalue.
+For rectangular feature matrices it is the ratio of the largest singular value (that is, what you get out of a singular value decomposition) to the smallest nonzero singular value.
 
 When the condition number is large, different linear-algebra approaches will differ.
 For example, the function call \code{solve(A, b)} should give you the best estimate it can for the product $A^{-1}\,b$, whereas the function call \code{dot(inv(A), b)}, which is the same on paper, will give you the dot product between \code{b} and the best estimate that \code{inv()} can find for the inverse of \code{A}.
@@ -627,7 +648,7 @@ It usually makes sense to set this dimensionless \code{rcond} input to something
 You might think that all of this is academic, but it really isn't when the number of features $p$ is within a factor of a few of the number of data points $n$.
 For example, in our toy-data OLS experiments in this paper with $n=23$, the matrix $X^\top\,X$ has a condition number (ratio of largest eigenvalue to smallest nonzero eigenvalue) that saturates machine precision for the entire range $12 < p < 50$!
 
-Related to this, if you have a choice between formulations that involve an inverse $(X^\top\,X)^{-1}\,X^\top\,Y$ and formulations that involve a pseudo-inverse $X^\dagger\,Y$, you should do the latter, because $X^\top\,X$ has the \emph{square} of the condition number of $X$.
+Related to this, if you have a choice between formulations that involve an inverse of a square, like $(X^\top\,X)^{-1}\,X^\top\,Y$, and formulations that involve a pseudo-inverse, like $X^\dagger\,Y$, you should do the latter, because $X^\top\,X$ has the \emph{square} of the condition number of $X$.
 When you want to execute $X^\dagger\,Y$, as we do in \eqref{eq:OLS3}, you should again use \code{lstsq()}, which was literally designed for these applications; use \code{lstsq(X, Y, rcond=tiny)}.
 This function returns the best estimate it can for $X^\dagger\,Y$, so
 it should be better than computing a pseudo-inverse \code{pinv(X)} and then matrix-multiplying \code{pinv(X)} with \code{Y}.
@@ -642,6 +663,12 @@ You should avoid ever constructing diagonal matrices.
 You can multiply $X$ or $X^\top$ by a diagonal matrix by just multiplying the rows (or columns) by the diagonal entries.
 And you can invert by just inverting the diagonal entries.
 Avoid constructing and operating on operators that are almost entirely zeros.
+
+And finally, it is most numerically stable to operate on the smallest matrices you can.
+For example, when you have the choice between the formulation in equation \eqref{eq:LambdaC1} and that in equation \eqref{eq:LambdaC2}, you should choose the former when $p<n$ and the latter when $p>n$.
+That way you are always doing the heavy linear algebra (\code{solve()} and \code{lstsq()} function calls) at a size $\min(p, n)$, which is both faster and more stable than linear algebra at $\max(p, n)$. And it is much faster when you make these choices correctly:
+Linear algebra scales naively as the dimension \emph{cubed}.
+(In practice---with excellent packages---it actually scales with a power more like 2.6 than 3, but still!)
 
 \section{Discussion}\label{sec:discussion}
 
@@ -678,6 +705,8 @@ SOLEDAD: Maybe how you get from the optimization statements to the closed-form s
 SOLEDAD: Maybe prove the equivalence of the expressions with $C$ and $\Lambda$.
 
 SOLEDAD: Maybe sketch some arguments about double descent?
+
+SOLEDAD: Maybe words or thoughts about Mercer's theorem and when the Fourier-transform correspondence we use here is applicable (and when it is not)?
 
 SOLEDAD: Other math details?
 
