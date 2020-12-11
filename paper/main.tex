@@ -1,12 +1,13 @@
 % to-do
 % -----
+% - Make sure that what we say about kriging and Wiener are correct.
+% - Are we clear that the feature weighting is a kind of regularization? I (DWH) think it IS because it affects how the L2 on beta affects different parameters. SV says that maybe we should get explicit about the regularization points, and when the regularization is implicit or hidden.
+% - In uncertainties, we talk about Bayesian. Should we also talk about frequentist and/or information theory?
 % - Audit for the use of "points" and "locations" and "data" to make sure all is consistent. The ts are locations, the ys are data.
 % - Audit for use of the words "fit" and "prediction" and "model". All okay?
 % - Audit for use of \, as the multiply operator? Fix the kerning around the ^\top items?
 % - Audit for design matrix, feature matrix, and so on. We should mention design matrix but stick with feature matrix as our terminology.
 % - Audit for hyphens in under-parameterization and re-weighting and so on? Hyphenated words or single words? Make decisions and stick to them.
-% - Needs a bibliography; should we use bibtex?
-% - Add acknowledgements: Sam Roweis (deceased), Dan Foreman-Mackey (Flatiron), Teresa Huang (JHU), Rachel Ward (UT Austin), Bernhard Sch\"olkopf (MPI-IS); who else??
 
 \documentclass[12pt,letterpaper]{article}
 \usepackage[utf8]{inputenc}
@@ -67,7 +68,19 @@
 
 \begin{document}\thispagestyle{plain}
 
-\section*{\raggedright Fitting very flexible models: Linear regression with large numbers of parameters\footnote{Hello world?}}
+\section*{\raggedright Fitting very flexible models: Linear regression with large numbers of parameters%
+\footnote{%
+It is a pleasure to thank
+Dan Foreman-Mackey (Flatiron),
+Teresa Huang (JHU),
+Sam Roweis (deceased),
+Adrian Price-Whelan (Flatiron),
+Bernhard Sch\"olkopf (MPI-IS), and
+Rachel Ward (UT Austin)
+for valuable conversations and input.
+SV is partially funded by NSF DMS 2044349, EOARD FA9550-18-
+1-7007, and the NSF-Simons Research Collaboration on the Mathematical and Scientific
+Foundations of Deep Learning (MoDL) (NSF DMS 2031985)}}
 
 \noindent
 \textbf{David W. Hogg} \\
@@ -89,7 +102,8 @@ They also choose an order, or number of basis functions to fit, and (often) some
 Here we discuss how this basis-function fitting is done, with ordinary least squares and extensions thereof.
 We emphasize that it is often valuable to choose \emph{far more parameters than data points}, despite folk rules to the contrary.
 It is even possible to take the limit of infinite parameters, at which, if the basis and regularization are chosen correctly, the least-squares fit becomes the mean of a Gaussian process (or, equivalently, a Wiener filter or kriging).
-Although there are often good fits with small numbers of parameters and also with very large numbers of parameters, the dangerous regime for linear fitting is when the number of parameters is comparable to the number of data points (the double-descent or peaking-phenomenon regime); we discuss this problem and how to ameliorate or avoid it.
+Although there are often good fits with small numbers of parameters and also with very large numbers of parameters, the dangerous regime for linear fitting is when the number of parameters is comparable to the number of data points (the double-descent or peaking-phenomenon regime); we discuss this problem and how to avoid it.
+We also comment on model selection, uncertainty estimation, and computational implementation.
 
 \section{Introduction}
 
@@ -121,7 +135,12 @@ It just makes these choices more implicit.
 And it is a pleasure to note that any time you have gone non-parametric you have implicitly chosen to use a basis with way more fit parameters than data points!
 The fact that non-parametrics work so well is strong evidence against the folk rule about the number of parameters needing to be less than the number of data points.
 
-HOGG: There are other contexts in which, recently, regressions have gone to very large numbers of parameters. For example, when there are many possible natural features... Pixels in an image or spectrum... etc... Deep learning and etc. This isn't our context! But it is relevant and related. Many good books exist, for example (HOGG CITE VARIOUS).
+In this \documentname, we treat applications that look like interpolation; there are many other contexts in which regressions have gone to very large numbers of parameters.
+For example, there are contexts in which there are enormous numbers of possible natural features, like for instance when the data are images or videos: Every pixel of every frame of the video---or any linear (or nonlinear) combination of pixels---can become a feature for the regression.
+Also, there are contexts in which features are generated randomly from, say, a space of functions that can act on the natural features (\citealt{rahimi2007random}).
+These settings are not what we are addressing here, but they are relevant and related
+(many good books exist, for example: \citealt{bishop, esl, agresti, gelman}).
+In some ways, the most flexible of models currently in use are deep networks, where it is both the case that the input data often have enormous numbers of natural features, \emph{and} the deep network is capable of generating (effectively) far more, internally.
 
 An important assumption or setting in what follows will be that you care about predicting new data or interpolating the data, but you explicitly don't care about the parameters of the fit or the weights of the basis functions \foreign{per se}.
 In this setting there are no important meanings to the components of the model.
@@ -169,7 +188,7 @@ For a concrete example, one common choice is to make the feature embedding funct
 where $T$ is a (large) length-scale in the coordinate space ($t$ space) and $\floor{j/2}$ indicates the floor of $j/2$ (integer division).
 Example functions $g_j(t)$ from this basis are shown in \figurename~\ref{fig:basis}.
 Alternative common choices would be to make the embedding fumctions $g_j(t)$ polynomials or other kinds of ordered basis functions, such as wavelets or spherical harmonics (the latter if, say, the $t_i$ are positions on the sphere).
-Another choice that isn't common in the natural sciences, but highly studied in machine learning (for example, SOLEDAD CITE RANDOM FEATURES PAPER), is to choose the features randomly from a distribution (rather than on a regular grid in frequency, as we do here). That is beyond our scope, but we come back to it in \sectionname~\ref{sec:discussion}.
+Another choice that isn't common in the natural sciences, but highly studied in machine learning (for example, \cite{rahimi2007random}), is to choose the features randomly from a distribution (rather than on a regular grid in frequency, as we do here). That is beyond our scope, but we come back to it in \sectionname~\ref{sec:discussion}.
 \begin{figure}[t]
     \begin{mdframed}
     \includegraphics[width=\figurewidth]{paper/fourier.pdf}
@@ -293,7 +312,7 @@ It is also useful sometimes to think of the ``units'' or dimensions of the quant
 
 We are taught folklore, at a young age, that we can never fit for more parameters than we have data. That is, we can never work at $p>n$.
 This isn't true!
-The only limits on inference are given by information theory, and information theory makes no reference to the \emph{number} of anything, parameters or data.
+Not only is it the case that we \emph{can} work at $p>n$, in many cases we \emph{should} work at $p>n$, and many real-world regressions do.
 But it is true that the $p>n$ regime is indeed strange!
 In the over-parameterized case, there are many settings of the parameters $\beta_j$ that will literally zero out the differences between the data $Y$ and the linear prediction $X\,\beta$.
 The OLS solution, in this case, is defined (somewhat arbitrarily) to be the minimum-norm parameter vector $\beta$ that interpolates the data:
@@ -550,7 +569,7 @@ It is important to emphasize that there are literally infinite alternative choic
 Indeed, any function $F(t-t')$ that has a finite, all-positive Fourier transform $f^2(\omega)$ can be substituted for the Mat\'ern kernel and associated frequency weighting function we use here.
 
 The particular kernel we obtain in equation \eqref{eq:k} is a stationary kernel, meaning it depends only on absolute values of time differences $|t - t'|$. Not all $p\rightarrow\infty$ kernels will be stationary. The limit $p\rightarrow\infty$ of $X\,\Lambda^{-1}\,X^\top$ in \eqref{eq.limit} leads to a stationary kernel $k(\cdot,\cdot)$ because the feature embedding in $X$ is a set of sines and cosines.
-Sines and cosines form a basis for translation-invariant function spaces. SOLEDAD: IS THIS WORDING OKAY?
+Sines and cosines form a basis for translation-invariant function spaces.
 If we had made a different choice for our basis, such as polynomials or wavelets, we would have obtained a non-stationary kernel in the $p\rightarrow\infty$ limit.
 
 At the end of \sectionname~\ref{sec:fwols}, we discussed including not just feature weights in a matrix $\Lambda^{-1}$ but also data weights in a matrix $C^{-1}$. The GP also permits this, and it is often a very good idea. The generalization of equations \eqref{eq:LambdaC1} and \eqref{eq:LambdaC2} to the GP case is 
@@ -577,8 +596,8 @@ The uncertainties coming from (3)~uncertainties in the locations $t_i$, and (4)~
 
 In the best-case scenario, you might have accurate estimates of the variances $[C]_{ii} = \sigma_i^2$ of the noise contributions affecting your training data values $y_i$, the noise might be Gaussian with zero mean, you might have locations $t_i$ that are extremely accurately known, and you might have justifiable prior variances $[\Lambda]_{jj}$ on your parameters $\beta_j$.
 In this case, you can assume that the linear model with $p$ parameters is a good model for your data, and write down a likelihood function and a prior.
-In this best-case scenario, you can turn the Bayesian crank and and deliver a posterior density or a marginalized likelihood for the predicted values $Y_\ast$ at the test locations $t_\ast$.
-The second derivative of the ln of the marginalized likelihood can then be processed into an uncertainty on the predictions $\hat{Y}_\ast$.
+In this best-case scenario, you can turn the Bayesian crank and deliver a posterior density for the predicted values $Y_\ast$ at the test locations $t_\ast$.
+The second derivative of the ln of the posterior density can then be processed into a standard error on the predictions $\hat{Y}_\ast$ (or you can deliver full posterior densities somehow).
 The details of this are way beyond the scope of this \documentname, but this (or a closely related) problem is discussed in some detail by us elsewhere (\citealt{products}).
 
 That scenario is best-case, but it does involve a lot of assumptions.
@@ -602,7 +621,7 @@ Note the similarity between jackknife and cross-validation; that's relevant and 
 \begin{figure}[t]
     \begin{mdframed}
     \includegraphics[width=\figurewidth]{paper/uncertainty.pdf}
-    \caption{The jackknife-estimated uncertainty on an ordinary least squares fit. What is shown is the diagonal of the empirical jackknife estimate $\hat{\Sigma}$ of the variance tensor on the prediction $\hat{Y}_\ast$ of an OLS fit. In other words, the off-diagonal entries of $\hat{\Sigma}_\ast$ are being ignored here; there are important covariances that are hard to visualize (and beyond our scope). The one-sigma region is larger than the span of the jackknife trials; this is because the jackknife trials are strongly correlated.}
+    \caption{The jackknife-estimated uncertainty on an ordinary least squares fit. What is shown is the diagonal of the empirical jackknife estimate $\hat{\Sigma}$ of the variance tensor on the prediction $\hat{Y}_\ast$ of an OLS fit. In other words, the off-diagonal entries of $\hat{\Sigma}_\ast$ are being ignored here; there are important covariances that are hard to visualize (and beyond our scope). The one-sigma region is larger than the span of the jackknife trials; this is because the jackknife trials are strongly correlated; the jackknife formula \eqref{eq:jackknife} commpensates for those correlations.}
     \label{fig:uncertainty}
     \end{mdframed}
 \end{figure}
@@ -688,9 +707,13 @@ HOGG: In what sense are these flexible models the same as things like interpolat
 All I got is that if they are linear---meaning that the prediction $\hat{Y}_\ast$ can be written as a linear operator acting on the training data $Y$---then they probably can be written in some form like feature-weighted OLS in the $p>>n$ regime.
 
 HOGG: Instead of WEIGHTING features that are regularly spaced in frequency space with a weighting function $f(\omega)$, we could have generated RANDOM features from a distribution $f^2(\omega)$.
-That is the approach in some machine-learning contexts (SOLEDAD CITE HERE).
+That is the approach in some machine-learning contexts \cite{rahimi2007random}.
 The same GP limit would appear at $p\rightarrow\infty$ (provided we choose some random phases too).
 These random-feature approaches have rarely been used in the natural sciences, but they are potentially of interest in the future.
+
+HOGG: Discuss stationarity and Fourier basis, and kernel choice being equivalent to choosing a kernel.
+
+% end matter
 
 {\raggedright
 \bibliographystyle{authordate1}
