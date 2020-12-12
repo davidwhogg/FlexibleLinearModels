@@ -71,6 +71,7 @@
 \section*{\raggedright Fitting very flexible models: Linear regression with large numbers of parameters%
 \footnote{%
 It is a pleasure to thank
+Jed Brown (CU Boulder),
 Dan Foreman-Mackey (Flatiron),
 Teresa Huang (JHU),
 Sam Roweis (deceased),
@@ -654,8 +655,8 @@ For rectangular feature matrices it is the ratio of the largest singular value (
 
 When the condition number is large, different linear-algebra approaches will differ.
 For example, the function call \code{solve(A, b)} should give you the best estimate it can for the product $A^{-1}\,b$, whereas the function call \code{dot(inv(A), b)}, which is the same on paper, will give you the dot product between \code{b} and the best estimate that \code{inv()} can find for the inverse of \code{A}.
-When the condition number of $A$ is large, these two values will diverge, and the \code{solve()} will be better (this claim contradicts what is stated in the abstract of \citealt{solve}, but this claim is based on real experiments on real matrices, so we stand by it).
-Use \code{solve(A, b)} and never \code{dot(inv(A), b)}.
+When the condition number of $A$ is large, these two values will diverge, and the \code{solve()} will be better (this claim contradicts what is stated in the abstract of \citealt{solve}, but this claim is based on our real experiences with real matrices, so we stand by it).
+Use \code{solve(A, b)} and never \code{dot(inv(A), b)} unless there are compelling code-structure reasons to use the latter, such as repeated calls (but even then, a Cholesky decomposition and Cholesky-solves are probably more stable).
 
 If your condition number gets very large, even \code{solve()} can give bad results, because very small eigenvalues of the matrix are being poorly estimated and then inverted.
 That's unstable.
@@ -691,27 +692,56 @@ Linear algebra scales naively as the dimension \emph{cubed}.
 
 \section{Discussion}\label{sec:discussion}
 
-HOGG: What main points did we make; what do we want you to take home? HOGG: Related: Why were we motivated to write this document?
+This \documentname\ was about linear fitting with very flexible models, for interpolation, prediction, and de-noising of data.
+We encouraged you to consider using very big models, but being intentional about regularization.
+These settings (over-parameterized, but carefully regularized) are adaptive and useful, and they connect, as we showed, to Gaussian processes in the limit, which are well-studied workhorses of data science.
 
-(HOGG: Say something about the case in which you have prior beliefs about the expected values of the parameters. THERE IS A PLACEHOLDER for this in the section about the over-parameterized case.)
+All the rage these days, is instead \emph{nonlinear fitting}, with things like deep learning and variational autoencoders and the like (HOGG CITE).
+We didn't discuss any of that.
+However, many of the high-level lessons in this \documentname\ carry over:
+All of these tools work well when the function space is flexible but also carefully regularized.
+In these nonlinear settings, regularization takes many additional new forms, like early stopping (HOGG CITE?), dropouts (HOGG CITE), and restricted network structure (such as convolutional; HOGG CITE).
 
-TODO:
-\begin{itemize}
-    \item Higher dimensions for the ambient space. Spherical harmonics.
-    \item The practice: design features for linear regression, how many do you choose, avoid pitfalls, when to go to Gaussian processes. Cross-validation. Everything an astronomer needs to know.
-    \item Discuss L1 and sparsity. In general in these flexible contexts, sparsity is usually not important. But if it is important, L1 is a good tool. AND you can get both the smoothness you want AND the sparsity if you do feature weighting and L1 (instead of feature weighting and L2, as we do here). Cite (https://arxiv.org/pdf/1308.0759.pdf).
-    \item cite stuff!
-\end{itemize}
+We only considered the setting in which you care about predicting new data $Y_\ast$ and never the setting in which you care about the internal parameters $\beta$ of the linear fit.
+However, if you are, say, measuring the power spectrum of a process (as we do, often, in cosmology), then you care about these amplitudes themselves.
+In this case, any regularization you apply takes the role of a prior or prior information.
+That prior must be chosen (in those cases) with great care, because the answers you get will be influenced by that choice; when it doesn't properly conform to your true beliefs, your answers will be distorted in bad ways.
+And, technically, when you take this view (that the parameters $\beta$ matter), you also have to get serious about the noise model on the data.
+That is, the beliefs encoded in the data noise variance tensor $C$ also must represent your true beliefs if you don't want your answers distorted in bad ways.
+All of that is out of scope here, but we say things about it all elsewhere (\citealt{fitting}).
 
-HOGG: In what sense are these flexible models the same as things like interpolators, running means, filters, and so on?
-All I got is that if they are linear---meaning that the prediction $\hat{Y}_\ast$ can be written as a linear operator acting on the training data $Y$---then they probably can be written in some form like feature-weighted OLS in the $p>>n$ regime.
+In many cases, when the goal is just to interpolate or de-noise data, in the natural sciences, investigators use running means (or medians), low-pass filters, or explicit interpolators (like cubic spline interpolation).
+These methods all have close relationships with what is written here.
+Indeed, a running mean, a low-pass filter, and a cubic-spline interpolator can all be written as a linear operator (the details of which depends on the locations $t_i$ of the data) acting on the input data vector $Y$, just like our linear fits produce linear operators.
+This means that in many cases, these methods can be translated into versions of the methods we present in this \documentname.
+A full translation is beyond our scope, though.
+And our view is that the value of being explicit about the basis and the regularization makes the linear fitting approach better in general.
 
-HOGG: Instead of WEIGHTING features that are regularly spaced in frequency space with a weighting function $f(\omega)$, we could have generated RANDOM features from a distribution $f^2(\omega)$.
-That is the approach in some machine-learning contexts \cite{rahimi2007random}.
-The same GP limit would appear at $p\rightarrow\infty$ (provided we choose some random phases too).
-These random-feature approaches have rarely been used in the natural sciences, but they are potentially of interest in the future.
+Regularization was perhaps the biggest theme of this \documentname.
+But we only really considered variants of L2 regularization (or ridge or Tikhonov).
+There are other regularizations, even other convex regularizations.
+A valuable and useful option is L1 or the lasso (HOGG CITE), which encourages sparsity---it encourages parameters $\beta_j$ to take the value $\beta_j=0$ exactly, where possible.
+This kind of regularization makes sense when we have prior beliefs that the functional forms we seek will in fact be sparse in our chosen basis.
+Usually this kind of consideration is less important in interpolation, prediction, and de-noising settings, but it is not unheard of.
+A nice recent result is that the feature weighting that we employ here can be used with L1 regularization to obtain simultaneously smoothness and sparsity (SOLEDAD CITE https://arxiv.org/pdf/1308.0759.pdf).
 
-HOGG: Discuss stationarity and Fourier basis, and kernel choice being equivalent to choosing a kernel.
+We discussed deterministic, ordered expansions like Fourier series and polynomials, but there is another class of \emph{random features} methods (see, for example, \citealt{rahimi2007random}) that we did not discuss.
+Briefly, the idea with random features is that instead of weighting features that are regularly spaced in frequency space with a weighting function $f(\omega)$, we could have generated features randomly from a probability distribution $\propto f^2(\omega)$.
+The same Gaussian process limit appears as $p\rightarrow\infty$ (provided we choose those features with appropriately random phases too).
+These random-feature approaches have rarely been used in the natural sciences, but they are potentially of interest in many applications.
+
+In the toy examples used throughout this \documentname, we considered data with locations $t_i$ in a one-dimensional location space or ambient space.
+This was a choice for simplicity of visualization; nothing is fundamental about the locations being one-dimensional.
+The only considerations about dimensionality is that the functions $g_j(t)$ have to act correctly on the locations $t_i$ whatever their size or shape.
+In astronomy and cosmology contexts, it is common for the locations $t_i$ to be positions on the sphere, and it is common for the natural basis functions to be spherical harmonics, for example.
+
+In our toy examples, we used a Fourier series.
+That is just one choice among many.
+However, \emph{it is often a great choice}.
+When you choose the Fourier basis (and---importantly---for every cosine term you include the corresponding sine term), the matrix $X\,\Lambda^{-1}\,X^\top$ (and the limiting kernel matrix $K$ at $p\rightarrow\infty$) has the property that every matrix element $[X\,\Lambda^{-1}\,X^\top]_{ii'}$ depends (or can be calculated from) just the absolute difference $|t_i-t_{i'}|$.
+That is, in this basis, all fitting methods become technically \emph{stationary}.
+This all relates to the translation-independence properties of the Fourier basis.
+So although the Fourier basis is just one choice among many, it is the \emph{right choice} when you think your problem has (or might have) certain kinds of translation invariances.
 
 % end matter
 
