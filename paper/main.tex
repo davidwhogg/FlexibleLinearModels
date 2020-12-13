@@ -1,6 +1,6 @@
 % to-do
 % -----
-% - Make sure that what we say about kriging and Wiener are correct.
+% - Make sure that what we say about Wiener filtering are correct.
 % - Are we clear that the feature weighting is a kind of regularization? I (DWH) think it IS because it affects how the L2 on beta affects different parameters. SV says that maybe we should get explicit about the regularization points, and when the regularization is implicit or hidden.
 % - In uncertainties, we talk about Bayesian. Should we also talk about frequentist and/or information theory?
 % - Audit for the use of "points" and "locations" and "data" to make sure all is consistent. The ts are locations, the ys are data.
@@ -24,10 +24,10 @@
   innerbottommargin=1.8ex,
   linecolor=captiongray,
   linewidth=0.5pt,
-  roundcorner=5pt,
+  roundcorner=1pt,
   shadow=false,
-  shadowcolor=black!05,
-  shadowsize=4pt
+  %shadowcolor=black!05,
+  %hadowsize=4pt
 }
 
 % Hogg's issues
@@ -81,7 +81,7 @@ Rachel Ward (UT Austin)
 for valuable conversations and input.
 SV is partially funded by NSF DMS 2044349, EOARD FA9550-18-
 1-7007, and the NSF-Simons Research Collaboration on the Mathematical and Scientific
-Foundations of Deep Learning (MoDL) (NSF DMS 2031985)}}
+Foundations of Deep Learning (MoDL) (NSF DMS-2031985).}}
 
 \noindent
 \textbf{David W. Hogg} \\
@@ -417,15 +417,15 @@ When the different features are weighted or normalized differently, the amplitud
 That is, the details of the min-norm data-fitting parameter vector depends on the details of how the features are normalized or weighted.
 In feature-weighted OLS, this property can be exploited to make the fits smooth, or meet other desiderata.
 
-HOGG: Now do the full generalization with $C$ and $\Lambda$ and explain how the matrix inversion formula (CITE SOMETHING) makes these two expressions equivalent:
+In the most general case, you have not just a set of feature weights $\Lambda^{-1}$, you also have a set of data-point weights $C^{-1}$ (which, in standard settings, would be the inverses of the variances of the noise affecting the data points $y_i$).
+When you put these all together, the feature-weighted, data-weighted least squares precitions are given by either of these two equivalent expressions:
 \begin{align}\label{eq:LambdaC1}
     \hat{Y} &= X_\ast\,(X^\top\,C^{-1}\,X + \Lambda)^{-1}\,X^\top\,C^{-1}\,Y
     \\ \label{eq:LambdaC2}
     \hat{Y} &= X_\ast\,\Lambda^{-1}\,X^\top\,(X\,\Lambda^{-1}\,X^\top + C)^{-1}\,Y
     ~.
 \end{align}
-Either leave the proof to the reader or make it an exercise HOGG: Check the units. And continue discussion of connections to Bayesian inference. Explain that these forms are good because they relieve the fits of the burden of going exactly through every data point. This is more responsive to the real situation of noisy data, and permits smoother solutions.
-HOGG: AND return to units again. And cite products again.
+We discuss the equivalence of these below in \appendixname~\ref{app:math}. These expressions appear in Bayesian-inference contexts (see, for example \citealt{products}) when $\Lambda$ is the variance of the prior on the parameter vector $\beta$ and $C$ is the variance of the noise on the data vector $Y$. In those contexts, the units of $C$ would be the units of $Y$ squared, and the units of $\Lambda$ would be the square of the ratio of the units of $Y$ to the units of $X$ (the square of the units of $\beta$. These weighted-feature, weighted-data least-square forms are good because (if the weightings are chosen appropriately) they lead to smooth solutions that are not required to pass precisely through every data point. This is appropriate in common, real situations in which data are noisy and the world is smooth. Which form you choose, between \eqref{eq:LambdaC1} and \eqref{eq:LambdaC2}, depends on a few things, but primarily $p/n$. If $p<n$ it's both faster and more stable to use \eqref{eq:LambdaC1}; if $p>n$ it's faster and more stable to use \eqref{eq:LambdaC2}.
 
 \section{How to set the number of parameters (and other hyper-parameters)}\label{sec:dd}
 
@@ -444,7 +444,7 @@ Also shown is the prediction, in each leave-one-out fit, for the left-out point.
 \begin{figure}[t]
     \begin{mdframed}
     \includegraphics[width=\figurewidth]{paper/LOO.pdf}
-    \caption{A demonstration of leave-one-out cross-validation for one particular model. The 23 lines are the 23 fits, for each of which one data point was held out. Also ploted on each of the 23 lines is the prediction made for that fit's held-out data point. HOGG anything else to say here?}
+    \caption{A demonstration of leave-one-out cross-validation for one particular model. The 23 lines are the 23 fits, for each of which one data point was held out. Also ploted on each of the 23 lines is the prediction made for that fit's held-out data point. Some of the predictions don't appear within the plot window, because the predictions obtain large amplitudes at the edges.}
     \label{fig:loo}
     \end{mdframed}
 \end{figure}
@@ -457,7 +457,7 @@ The predictive accuracy is a strong function of $p$!
 \begin{figure}[t]
     \begin{mdframed}
     \includegraphics[width=\figurewidth]{paper/cross-validation.pdf}
-    \caption{Leave-one-out cross-validation estimates of mean squared prediction error for the feature-weighted OLS fits, as a function of the number of features $p$. Also shown are the same for ridge regression with $\lambda=0.1$ and also the Gaussian process introduced in \sectionname~\ref{sec:gp} and shown in \figurename~\ref{fig:gp}. The GP result is shown as a flat line because it doesn't have an associated number $p$. In detail the first (lowest-$t$) and last (highest-$t$) data points were not used in computing the mean squared error; that choice is debatable, but we are imagining an assessment of the quality of the \emph{interpolations}, not extrapolations, of these models. Note that the OLS predictions are much, much worse at $p\approx n$ (check out all the orders of magnitude on the vertical axis) than they are at very low or very high $p$, but that ridge regression doesn't show this behavior.}
+    \caption{Leave-one-out cross-validation estimates of mean squared prediction error for the feature-weighted OLS fits, as a function of the number of features $p$. Also shown are the same for ridge regression with $\lambda=0.1$ and also the Gaussian process introduced in \sectionname~\ref{sec:gp} and shown in \figurename~\ref{fig:gp}. The GP result is shown as a flat line because it doesn't have an associated number $p$. In detail the first (lowest-$t$) and last (highest-$t$) data points were not used in computing the mean squared error; that choice is debatable, but we are imagining an assessment of the quality of the \emph{interpolations}, not extrapolations, of these models. Note that the OLS predictions are much, much worse at $p\approx n$ (check out all the orders of magnitude on the vertical axis) than they are at very low or very high $p$, but that ridge regression doesn't show this behavior. (HOGG MAKE SURE THIS POINT APPEARS IN THE MAIN TEXT).}
     \label{fig:cv}
     \end{mdframed}
 \end{figure}
@@ -513,7 +513,7 @@ When we consider only the mean prediction of the GP, as we do here, then the GP 
 Classically, this linear filter is sometimes called a Wiener filter (more on this in a moment) or \emph{kriging} (HOGG CITE).
 
 Importantly for us, there is a strong connection between the feature-weighted OLS and the GP.
-In particular, when the features $x_j$ form some kind of (SOLEDAD: WHAT TO SAY HERE?) basis, and we take the limit of infinite features ($p\rightarrow\infty$) we get kernel matrices in place of the $X\,\Lambda^{-1}\,X^\top$ matrix products;
+In particular, when the features $x_j$ form some kind of (SOLEDAD: WHAT TO SAY HERE? reproducing? Hilbert? ...?) basis, and we take the limit of infinite features ($p\rightarrow\infty$) we get kernel matrices $K$ in place of the $X\,\Lambda^{-1}\,X^\top$ matrix products:
 \begin{align}
     \lim_{p\rightarrow\infty} X\,\Lambda^{-1}\,X^\top &= K
     \\
@@ -579,7 +579,7 @@ At the end of \sectionname~\ref{sec:fwols}, we discussed including not just feat
     ~.
 \end{equation}
 As before, in contexts where you have independent uncertainties on each element $y_i$ of your training data $Y$, $C^{-1}$ would naturally be set to the diagonal matrix containing the inverses of the variances of those uncertainties (so $C$ would contain the variances).
-This form \eqref{eq:gpC} is used a lot in astronomy and physics (HOGG CITE SOME THINGS?) and it is also the standard form given for the Wiener filter, where the kernel function generating $K$ is the Fourier tranform of the ``signal power'' and the kernel function generating $C$ is the Fourier transform of the ``noise power''.
+This form \eqref{eq:gpC} is used a lot in astronomy and physics (HOGG CITE SOME THINGS?) and it is also the standard form given for the Wiener filter, where the kernel function generating $K$ is the Fourier transform of the ``signal power'' and the kernel function generating $C$ is the Fourier transform of the ``noise power''.
 
 \section{Uncertainties on the predictions}\label{sec:uncertainty}
 
@@ -666,7 +666,7 @@ The \code{lstsq()} function requires a \code{rcond} input, which says at what (d
 It usually makes sense to set this dimensionless \code{rcond} input to something like machine precision, which is about \code{1e-16} for our current hardware--software setups.
 
 You might think that all of this is academic, but it really isn't when the number of features $p$ is within a factor of a few of the number of data points $n$.
-For example, in our toy-data OLS experiments in this paper with $n=23$, the matrix $X^\top\,X$ has a condition number (ratio of largest eigenvalue to smallest nonzero eigenvalue) that saturates machine precision for the entire range $12 < p < 50$!
+For example, in our toy-data OLS experiments in this paper with $n=23$, the matrix $X^\top\,X$ has a condition number (ratio of largest eigenvalue to smallest nonzero eigenvalue) that saturates machine precision for the entire range $12 < p < 50$.
 
 Related to this, if you have a choice between formulations that involve an inverse of a square, like $(X^\top\,X)^{-1}\,X^\top\,Y$, and formulations that involve a pseudo-inverse, like $X^\dagger\,Y$, you should do the latter, because $X^\top\,X$ has the \emph{square} of the condition number of $X$.
 When you want to execute $X^\dagger\,Y$, as we do in \eqref{eq:OLS3}, you should again use \code{lstsq()}, which was literally designed for these applications; use \code{lstsq(X, Y, rcond=tiny)}.
@@ -703,7 +703,7 @@ All of these tools work well when the function space is flexible but also carefu
 In these nonlinear settings, regularization takes many additional new forms, like early stopping (HOGG CITE?), dropouts (HOGG CITE), and restricted network structure (such as convolutional; HOGG CITE).
 
 We only considered the setting in which you care about predicting new data $Y_\ast$ and never the setting in which you care about the internal parameters $\beta$ of the linear fit.
-However, if you are, say, measuring the power spectrum of a process (as we do, often, in cosmology), then you care about these amplitudes themselves.
+However, if you are, say, measuring the power spectrum of a process (as we are, often, in cosmology), then you care about these amplitudes themselves.
 In this case, any regularization you apply takes the role of a prior or prior information.
 That prior must be chosen (in those cases) with great care, because the answers you get will be influenced by that choice; when it doesn't properly conform to your true beliefs, your answers will be distorted in bad ways.
 And, technically, when you take this view (that the parameters $\beta$ matter), you also have to get serious about the noise model on the data.
@@ -738,7 +738,7 @@ In astronomy and cosmology contexts, it is common for the locations $t_i$ to be 
 In our toy examples, we used a Fourier series.
 That is just one choice among many.
 However, \emph{it is often a great choice}.
-When you choose the Fourier basis (and---importantly---for every cosine term you include the corresponding sine term), the matrix $X\,\Lambda^{-1}\,X^\top$ (and the limiting kernel matrix $K$ at $p\rightarrow\infty$) has the property that every matrix element $[X\,\Lambda^{-1}\,X^\top]_{ii'}$ depends (or can be calculated from) just the absolute difference $|t_i-t_{i'}|$.
+When you choose the Fourier basis (and---importantly---for every cosine term you include the corresponding sine term), the matrix $X\,\Lambda^{-1}\,X^\top$ (and the limiting kernel matrix $K$ at $p\rightarrow\infty$) has the property that every matrix element $[X\,\Lambda^{-1}\,X^\top]_{ii'}$ depends on (or can be calculated from) just the absolute difference $|t_i-t_{i'}|$.
 That is, in this basis, all fitting methods become technically \emph{stationary}.
 This all relates to the translation-independence properties of the Fourier basis.
 So although the Fourier basis is just one choice among many, it is the \emph{right choice} when you think your problem has (or might have) certain kinds of translation invariances.
@@ -751,7 +751,7 @@ So although the Fourier basis is just one choice among many, it is the \emph{rig
 }
 
 \appendix
-\section{Mathematical arguments and results}
+\section{Mathematical arguments and results}\label{app:math}
 
 SOLEDAD: Maybe how you get from the optimization statements to the closed-form solutions, for the under- and over-parameterized cases?
 
