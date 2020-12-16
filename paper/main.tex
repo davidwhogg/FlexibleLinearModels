@@ -286,7 +286,7 @@ The ridge-regularized prediction for new data looks like
     ~,
 \end{equation}
 where $I$ is the $p\times p$ identity.
-In the language of Bayesian inference, $\lambda$ can be seen as a prior variance for the parameters $\beta_j$.
+In the language of Bayesian inference, $\lambda$ can be seen as the inverse of a prior variance for the parameters $\beta_j$.
 The salutary effect of the ridge regularization is shown in \figurename~\ref{fig:ridge}.
 \begin{figure}[t]
     \begin{mdframed}
@@ -309,9 +309,9 @@ You can combine both the point weighting from WLS and the generalized ridge regr
 \end{equation}
 This form has good properties for many real-world physics applications, where data-point error bars are often known, and functions are often expected to be smooth.
 We'll discuss this form \eqref{eq:foo} more below in \sectionname~\ref{sec:fwols},
-but briefly we can say here that it appears in Bayesian inference contexts where the data points $y_i$ are treated as having Gaussian noise associated with them (with known variance tensor $C$) and there is a Gaussian prior on the parameter vector $\beta$ (with known variance $\Lambda$).
+but briefly we can say here that it appears in Bayesian inference contexts where the data points $y_i$ are treated as having Gaussian noise associated with them (with known variance tensor $C$) and there is a Gaussian prior on the parameter vector $\beta$ (with known variance $\Lambda^{-1}$).
 We have discussed that model elsewhere (\citealt{products}).
-It is also useful sometimes to think of the ``units'' or dimensions of the quantities in \eqref{eq:foo}: In the Bayesian setting, the units of $C$ would be the square of the units of $Y$ and the units of $\Lambda$ would be the square of the units of the ratio $Y/X$ (the square of the units of $\beta$).
+It is also useful sometimes to think of the ``units'' or dimensions of the quantities in \eqref{eq:foo}: In the Bayesian setting, the units of $C$ would be the square of the units of $Y$ and the units of $\Lambda^{-1}$ would be the square of the units of the ratio $Y/X$ (the square of the units of $\beta$).
 
 \section{Over-parameterization}
 
@@ -429,13 +429,13 @@ When you put these all together, the feature-weighted, data-weighted least squar
     \hat{Y} &= X_\ast\,\Lambda^{-1}\,X^\top\,(X\,\Lambda^{-1}\,X^\top + C)^{-1}\,Y
     ~.
 \end{align}
-We discuss the equivalence of these below in \appendixname~\ref{app:math}. These expressions appear in Bayesian-inference contexts (see, for example \citealt{products}) when $\Lambda$ is the variance of the prior on the parameter vector $\beta$ and $C$ is the variance of the noise on the data vector $Y$. In those contexts, the units of $C$ would be the units of $Y$ squared, and the units of $\Lambda$ would be the square of the ratio of the units of $Y$ to the units of $X$ (the square of the units of $\beta$. These weighted-feature, weighted-data least-square forms are good because (if the weightings are chosen appropriately) they lead to smooth solutions that are not required to pass precisely through every data point. This is appropriate in common, real situations in which data are noisy and the world is smooth. Which form you choose, between \eqref{eq:LambdaC1} and \eqref{eq:LambdaC2}, depends on a few things, but primarily $p/n$. If $p<n$ it's both faster and more stable to use \eqref{eq:LambdaC1}; if $p>n$ it's faster and more stable to use \eqref{eq:LambdaC2}. We show a toy example of a fit with both feature weights $\Lambda^{-1}$ and data weights $C^{-1}$ in \figurename~\ref{fig:fwwls}.
+We discuss the equivalence of these below in \appendixname~\ref{app:math}. These expressions appear in Bayesian-inference contexts (see, for example \citealt{products}) when $\Lambda^{-1}$ is the variance of the prior on the parameter vector $\beta$ and $C$ is the variance of the noise on the data vector $Y$. In those contexts, the units of $C$ would be the units of $Y$ squared, and the units of $\Lambda^{-1}$ would be the square of the ratio of the units of $Y$ to the units of $X$ (the square of the units of $\beta$. These weighted-feature, weighted-data least-square forms are good because (if the weightings are chosen appropriately) they lead to smooth solutions that are not required to pass precisely through every data point. This is appropriate in common, real situations in which data are noisy and the world is smooth. Which form you choose, between \eqref{eq:LambdaC1} and \eqref{eq:LambdaC2}, depends on a few things, but primarily $p/n$. If $p<n$ it's both faster and more stable to use \eqref{eq:LambdaC1}; if $p>n$ it's faster and more stable to use \eqref{eq:LambdaC2}. We show a toy example of a fit with both feature weights $\Lambda^{-1}$ and data weights $C^{-1}$ in \figurename~\ref{fig:fwwls}.
 \begin{figure}[t]
     \begin{mdframed}
     \includegraphics[width=\figurewidth]{paper/weighted-WLS.pdf}
     \caption{Comparison of the feature-weighted OLS shown in \figurename~\ref{fig:fwols} to the same but also including data weights $C^{-1}$, as in equations \eqref{eq:LambdaC1} and \eqref{eq:LambdaC2}.
     Similarly to \figurename~\ref{fig:wls}, the data weights on the diagonal of $C^{-1}$ are the inverses of the squares of the uncertainties shown as vertical error bars. The feature weights encourage the prediction to be smooth; the data weights permit it to be even smoother because they permit the prediction to miss the training data.
-    Prediction results now depend on the specific amplitude or prefactor multiplying the feature weights; a particular value of $0.07\,f^2(\omega)$ was chosen for the feature weights for this demonstration.}
+    Prediction results now depend on the specific amplitude or prefactor multiplying the feature weights; a particular value of $0.07\,f^2(\omega)$ was chosen for the diagonal of the feature weight matrix $\Lambda^{-1}$ for this demonstration.}
     \label{fig:fwwls}
     \end{mdframed}
 \end{figure}
@@ -610,7 +610,7 @@ These four different sources of uncertainty propagate differently and are differ
 In particular it turns out that the easiest sources of uncertainty to understand and propagate are those coming from (1)~the noise in the $y_i$ and (2)~the number $n$ and locations $t_i$ of the data.
 The uncertainties coming from (3)~uncertainties in the locations $t_i$, and (4)~model choices, are both much harder to model and propagate.
 
-In the best-case scenario, you might have accurate estimates of the variances $[C]_{ii} = \sigma_i^2$ of the noise contributions affecting your training data values $y_i$, the noise might be Gaussian with zero mean, you might have locations $t_i$ that are extremely accurately known, and you might have justifiable prior variances $[\Lambda]_{jj}$ on your parameters $\beta_j$.
+In the best-case scenario, you might have accurate estimates of the variances $[C]_{ii} = \sigma_i^2$ of the noise contributions affecting your training data values $y_i$, the noise might be Gaussian with zero mean, you might have locations $t_i$ that are extremely accurately known, and you might have justifiable prior variances $[\Lambda^{-1}]_{jj}$ on your parameters $\beta_j$.
 In this case, you can assume that the linear model with $p$ parameters is a good model for your data, and write down a likelihood function and a prior.
 In this best-case scenario, you can turn the Bayesian crank and deliver a posterior density for the predicted values $Y_\ast$ at the test locations $t_\ast$.
 The second derivative of the ln of the posterior density can then be processed into a standard error on the predictions $\hat{Y}_\ast$ (or you can deliver full posterior densities somehow).
