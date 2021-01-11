@@ -1,17 +1,12 @@
 % to-do
 % -----
 % - Address the META over-fitting point that if you do lots of CVs and $n$ is small, you are probably still over-fitting. For example, the $p=73$ result is probably an over-fit. SV has an example in the literature to be cited. Goes in the discussion. But maybe also gets hinted in the introduction.
-% - Incorporate Zhao comments and thank Zhao
-% - Incorporate Gentillini comments and thank Gentillini
-% - Note that we made the toy examples on a regular grid in t-space. That isn't required or assumed anywhere in the text; that's just a choice for the toy.
+% - Incorporate remaining Zhao comments
 % - Are we clear that the feature weighting is a kind of regularization? I (DWH) think it IS because it affects how the L2 on beta affects different parameters. SV says that maybe we should get explicit about the regularization points, and when the regularization is implicit or hidden.
 % - In uncertainties, we talk about Bayesian. Should we also talk about frequentist and/or information theory?
-% - Audit for the use of "points" and "locations" and "data" to make sure all is consistent. The ts are locations, the ys are data.
-% - Audit for use of the words "fit" and "prediction" and "model". All okay?
 % - Audit for use of \, as the multiply operator? Fix the kerning around the ^\top items?
-% - Audit for design matrix, feature matrix, and so on. We should mention design matrix but stick with feature matrix as our terminology.
-% - Audit for hyphens in under-parameterization and re-weighting and so on? Hyphenated words or single words? Make decisions and stick to them.
 % - HOGG: List clearly the assumptions underlying CVMSE and jackknife. They make assumptions about independence of the data points and also something maybe about per-point information content.
+% - SOLEDAD: address constraints may not be satisfiable
 
 \documentclass[12pt,letterpaper]{article}
 \usepackage[utf8]{inputenc}
@@ -76,6 +71,7 @@
 It is a pleasure to thank
 Jed Brown (CU Boulder),
 Dan Foreman-Mackey (Flatiron),
+Alessandro Gentilini,
 Teresa Huang (JHU),
 Sam Roweis (deceased),
 Adrian Price-Whelan (Flatiron),
@@ -91,7 +87,7 @@ Foundations of Deep Learning (MoDL) (NSF DMS-2031985).}}
 \noindent
 \textbf{David W. Hogg} \\
 \textsl{\footnotesize Flatiron Institute, a division of the Simons Foundation \\
-Center for Cosmology and Particle Physics, Deptartment of Physics, New York University \\
+Center for Cosmology and Particle Physics, Department of Physics, New York University \\
 Center for Data Science, New York University \\
 Max-Planck-Institut f\"ur Astronomie, Heidelberg}
 
@@ -101,22 +97,24 @@ Max-Planck-Institut f\"ur Astronomie, Heidelberg}
 \textsl{\footnotesize Department of Applied Mathematics \& Statistics, Johns Hopkins University \\
 Mathematical Institute for Data Science, Johns Hopkins University}
 
-\paragraph{Abstract:} There are many uses for linear fitting; the context we consider here is interpolation and denoising of data, as (for example) when you have calibration data and you want to fit a smooth, flexible function to those data.
+\paragraph{Abstract:} There are many uses for linear fitting; the context here is interpolation and denoising of data, as when you have calibration data and you want to fit a smooth, flexible function to those data.
 Or you want to fit a flexible function to de-trend a time series or normalize a spectrum.
 In these contexts, investigators often choose a polynomial basis, or a Fourier basis, or wavelets, or something equally general.
 They also choose an order, or number of basis functions to fit, and (often) some kind of regularization.
 Here we discuss how this basis-function fitting is done, with ordinary least squares and extensions thereof.
-We emphasize that it is often valuable to choose \emph{far more parameters than data points}, despite folk rules to the contrary.
-It is even possible to take the limit of infinite parameters, at which, if the basis and regularization are chosen correctly, the least-squares fit becomes the mean of a Gaussian process (or, equivalently, a Wiener filter or kriging).
-Although there are often good fits with small numbers of parameters and also with very large numbers of parameters, the dangerous regime for linear fitting is when the number of parameters is comparable to the number of data points (the double-descent or peaking-phenomenon regime); we discuss this problem and how to avoid it.
-We also comment on model selection, uncertainty estimation, and computational implementation.
+We emphasize that it is often valuable to choose \emph{far more parameters than data points}, despite folk rules to the contrary:
+Suitably regularized models with enormous numbers of parameters generalize well and make good predictions for held-out data; over-fitting is not (mainly) a problem of having too many parameters.
+It is even possible to take the limit of infinite parameters, at which, if the basis and regularization are chosen correctly, the least-squares fit becomes the mean of a Gaussian process.
+We recommend cross-validation as a good empirical method for model selection (for example, setting the number of parameters and the detailed form of the regularization),
+and jackknife resampling as a good empirical method for estimating the uncertainties of the predictions made by the model.
+We also give advice for building stable computational implementations.
 
 \section{Introduction}
 
 In contexts in which we want to fit a flexible function to data, for interpolation or denoising, we often perform linear fitting in a generic basis, such as polynomials, Fourier modes, wavelets, or spherical harmonics.
 This kind of linear fitting arises in astronomy when, for example, we want to calibrate the relationship between wavelength and position on the detector in a spectrograph:
-We have noisy measurements of calibration data and we want to fit a smooth function of position that de-noises and interpolates the calibration data.
-It also arises when we want to make a data-driven interpolation, extrapolation, or local averaging of data, as with light-curve detrending, continuum estimation, and interpolation or extrapolation of instrument housekeeping (or other) data.
+We have noisy measurements of calibration data and we want to fit a smooth function of position that denoises and interpolates the calibration data.
+It also arises when we want to make a data-driven interpolation, extrapolation, or local averaging of data, as with light-curve de-trending, continuum estimation, and interpolation or extrapolation of instrument housekeeping (or other) data.
 
 When faced with problems of this kind, investigators have three general kinds of choices that they have to make:
 They have to choose the basis in which they are working (Fourier, polynomial, wavelet, etc.).
@@ -224,7 +222,7 @@ where $\hat{\beta}$ is the $p$-vector (column vector) of the $p$ best-fit values
     ~.
 \end{equation}
 This optimization objective \eqref{eq:opt1} is convex and the optimization problem has a solution in closed form\footnote{
-Note that $\nabla_{\beta} \|Y-X\beta\|^2 = 2X^\top(Y-X\beta)$ so critical points are such that $X^\top Y= X^\top X\beta$. Since the objective is convex and unbounded all these critical points are global minima. 
+Note that $\nabla_{\beta} \|Y-X\beta\|^2 = 2X^\top(Y-X\beta)$ so critical points are such that $X^\top Y= X^\top X\beta$. Since the objective is convex all these critical points are global minima. 
 } as long as the number of parameters (and features) $p$ is less than the number of training points $n$ (and the matrix $X^\top X$ is invertible):
 \begin{equation}
     \hat{\beta} = (X^\top\,X)^{-1}\,X^\top\,Y
@@ -232,7 +230,7 @@ Note that $\nabla_{\beta} \|Y-X\beta\|^2 = 2X^\top(Y-X\beta)$ so critical points
     \label{OLS-under}
 \end{equation}
 We will treat the case in which the matrix is not invertible below.
-When the investigator knows uncertainties on the training data points $y_i$, this expression will change a bit; we begin to discuss that in the next \sectionname.
+When the investigator knows uncertainties on the training data $y_i$, this expression will change a bit; we begin to discuss that in the next \sectionname.
 
 But recall our setting:
 We are using the linear fit to interpolate the data, or de-noise the data, or predict new data.
@@ -251,18 +249,18 @@ In particular, if the noise contributions in the model given in equation \eqref{
 \begin{figure}[t]
     \begin{mdframed}
     \includegraphics[width=\figurewidth]{paper/OLS-under.pdf}
-    \caption{Ordinary least-squares (OLS) fits (continuous lines) to a set of example data points (black dots). Fits are shown for different values of the number of basis functions $p$; there are $n=23$ data points. Here (and in all the \figurename s to follow) we are using the Fourier basis functions in \eqref{eq:basis} and shown in \figurename~\ref{fig:basis}. The data points $y_i$ were generated using a function that does not reside in the function space spanned by the basis. Here the $X_\ast$ matrices used in the predictions $\hat{Y}_\ast$ were generated from a fine grid of points in the location coordinate $t$; the plots of the fine grid of predictions are the continuous lines. The fits with larger $p$ have more flexibility to fit the data than the fit with $p=3$, but the fit at the highest $p$ shows evidence of over-fitting.}
+    \caption{Ordinary least-squares (OLS) fits (continuous lines) to a set of example data points (black dots). Fits are shown for different values of the number of basis functions $p$; there are $n=23$ data points. Here (and in all the \figurename s to follow) we are using the Fourier basis functions in \eqref{eq:basis} and shown in \figurename~\ref{fig:basis}. The data $y_i$ were generated using a function that does not reside in the function space spanned by the basis. Here the $X_\ast$ matrices used in the predictions $\hat{Y}_\ast$ were generated from a fine grid of locations in the location coordinate $t$; the plots of the fine grid of predictions are the continuous lines. The fits with larger $p$ have more flexibility to fit the data than the fit with $p=3$, but the fit at the highest $p$ shows evidence of over-fitting.}
     \label{fig:ols1}
     \end{mdframed}
 \end{figure}
 
 \section{Discussion and extensions of OLS}\label{sec:extensions}
 
-The prediction \eqref{eq:OLS} when $p<n$ (the under-parameterized or traditional regime) is \emph{affine invariant} in that $p$-dimensional rotations or rescalings of the rectangular design matrix $X$ do not affect predictions.
+The prediction \eqref{eq:OLS} when $p<n$ (the under-parameterized or traditional regime) is \emph{affine invariant} in that $p$-dimensional rotations or rescalings of the rectangular feature matrix $X$ do not affect predictions.
 That is, if $R$ is an invertible $p\times p$ matrix, the prediction using $X'\leftarrow X\,R$ will be identical to the prediction using the original $X$.
 This affine invariance will return in a different form in the over-parameterized regime, below.
 
-Although the OLS prediction \eqref{eq:OLS} is affine invariant with respect to $p$-dimensional transformations, it is \emph{not} affine invariant with respect to $n$-dimensional transformations, such as a re-weighting of the input data. Indeed, if you know weights or inverse variances for your data points, conceptually you can put them into a weight matrix $C^{-1}$ (written this way to emphasize that reweighting is usually inverse-variance weighting) and write
+Although the OLS prediction \eqref{eq:OLS} is affine invariant with respect to $p$-dimensional transformations, it is \emph{not} affine invariant with respect to $n$-dimensional transformations, such as a re-weighting of the input data. Indeed, if you know weights or inverse variances for your data points $y_i$, conceptually you can put them into a weight matrix $C^{-1}$ (written this way to emphasize that reweighting is usually inverse-variance weighting) and write
 \begin{equation}\label{eq:wls}
     \hat{Y}_\ast = X_\ast\,(X^\top\,C^{-1}\,X)^{-1}\,X^\top\,C^{-1}\,Y
     ~,
@@ -286,18 +284,18 @@ In \figurename~\ref{fig:wls} a comparison of OLS and WLS is shown, for a case of
 \end{figure}
 
 We will say more about noisy data and the propagation of uncertainties below in \sectionname~\ref{sec:uncertainty}.
-It might be crossing your mind that there are uncertainties not just in the data points $y_i$, but also often in the \emph{locations} $t_i$ of the data points as well. It turns out that taking the latter into account is a much harder problem; we return to this also in \sectionname~\ref{sec:uncertainty}.
+It might be crossing your mind that there are uncertainties not just in the data points $y_i$, but also often in the \emph{locations} $t_i$ of the data as well. It turns out that taking the latter into account is a much harder problem; we return to this also in \sectionname~\ref{sec:uncertainty}.
 
 It is common to include a regularization that discourages the fit from making use of large amplitudes $\beta_j$.
 There are many options, but the simplest is ridge regression (or Tikhonov regularization or L2 regularization), which (in the form that doesn't have data weights) looks like
-\begin{equation}
+\begin{equation} \label{eq:ridge}
     \hat{\beta} = \arg\min_\beta \|Y - X\,\beta\|_2^2 + \lambda\,\|\beta\|_2^2
     ~,
 \end{equation}
 where $\lambda>0$ is a regularization parameter that penalizes large values for elements $\beta_j$ of the parameter vector.
 This optimization is also convex.
 The ridge-regularized prediction for new data looks like
-\begin{equation} \label{eq:ridge}
+\begin{equation} \label{eq:ridge_sol}
     \hat{Y}_\ast = X_\ast\,(X^\top\,X + \lambda\,I)^{-1}\,X^\top\,Y
     ~,
 \end{equation}
@@ -360,7 +358,7 @@ In the over-parameterized case ($p>n$), the prediction looks like
 provided that $X\,X^\top$ is invertible (which will usually be the case).
 Like \eqref{eq:OLS}, this prediction is \emph{also} called ordinary least squares (OLS), or sometimes ``min-norm least-squares'' to emphasize the point that it is making the minimum-norm choice of $\beta$ among many degenerate solutions.
 Examples of OLS fits in the over-parameterized regime are shown in \figurename~\ref{fig:ols2}.
-Note that the fits with different numbers of parameters $p$ lead to very different predictions, but they all go through the data points exactly.
+Note that the fits with different numbers of parameters $p$ lead to very different predictions, but they all go through the data exactly.
 \begin{figure}[t]
     \begin{mdframed}
     \includegraphics[width=\figurewidth]{paper/OLS-over.pdf}
@@ -390,13 +388,13 @@ There can be significant numerical issues with implementing the pseudo-inverse; 
 
 The OLS prediction for $p>n$ is \emph{not} affine invariant with respect to $p$-dimensional rotations or rescalings.
 That is, rotations and scalings in the feature space \emph{will} affect predictions.
-It behooves us to re-scale the features (the $p$ $n$-vectors of the design matrix $X$) in a sensible way, like for instance, to encourage the fit to use low-frequency features more than high-frequency features (\citealt{xie2020weighted, bah2016sample, rauhut2016interpolation}).
+It behooves us to re-scale the features (the $p$ $n$-vectors of the feature matrix $X$) in a sensible way, like for instance, to encourage the fit to use low-frequency features more than high-frequency features (\citealt{xie2020weighted, bah2016sample, rauhut2016interpolation}).
 We can encode these feature weights in a $p\times p$ diagonal weight matrix $\Lambda^{-1}$ and the prediction becomes
-\begin{equation}
+\begin{equation} \label{eq:weighted_sol}
     \hat{Y}_\ast = X_\ast\,\Lambda^{-1}\,X^\top\,(X\,\Lambda^{-1}\,X^\top)^{-1}\,Y
 \end{equation}
 This can be seen as the prediction for new data resulting from the following optimization:
-\begin{equation}
+\begin{equation} \label{eq:weighted}
     \hat{\beta} = \arg\min_\beta \|\Lambda^{1/2}\,\beta\|_2^2 ~~\mbox{subject to}~~ Y = X\,\beta
     ~,
 \end{equation}
@@ -427,7 +425,7 @@ High frequencies are suppressed and the prediction becomes smooth.
 \begin{figure}[t]
     \begin{mdframed}
     \includegraphics[width=\figurewidth]{paper/weighted-OLS.pdf}
-    \caption{Comparison of ordinary least squares (OLS) to OLS with a specific feature weighting. The feature-weighting function is given in the text in equations~\eqref{eq:f} and \eqref{eq:lambdainv}. When the high-frequency features are weighted down, the min-norm solution gives them small amplitudes, making the fit smoother.}
+    \caption{Comparison of ordinary least squares (OLS) to OLS with a specific feature weighting. The feature-weighting function is given in the text in equations~\eqref{eq:f} and \eqref{eq:lambdainv}; in this and the following \figurename s, we (somewhat arbitrarily) set the width parameter to be $s=0.05$. When the high-frequency features are weighted down, the min-norm solution gives them small amplitudes, making the fit smoother.}
     \label{fig:fwols}
     \end{mdframed}
 \end{figure}
@@ -468,7 +466,7 @@ Indeed, understanding the generating process of the world is the goal of investi
 Given a data set (location--data pairs $t_i, y_i$), what is the best way to empirically estimate, from those data, the out-of-sample prediction error---that is, how do you estimate how well you are likely to predict new data?
 The only good answer to this is cross-validation:
 In cross-validation, we leave out a part of the data (in the most extreme form, leave out one single data point at a time), train the model using all but the left-out part, and predict the left-out part. Then this process is iterated over all choices of what part (or point) to leave out.
-This process is illustrated in \figurename~\ref{fig:loo}, where we show $23$ fits, each of which is trained to the 22 points left when we leave one of the $n=23$ points out.
+This process is illustrated in \figurename~\ref{fig:loo}, where we show $23$ fits, each of which is trained to the 22 points remaining when we leave one of the $n=23$ points out.
 Also shown is the prediction, in each leave-one-out fit, for the left-out point.
 \begin{figure}[t]
     \begin{mdframed}
@@ -486,7 +484,7 @@ The predictive accuracy is indeed a function of $p$.
 \begin{figure}[t]
     \begin{mdframed}
     \includegraphics[width=\figurewidth]{paper/cross-validation.pdf}
-    \caption{Leave-one-out cross-validation estimates of mean squared prediction error for the feature-weighted OLS fits, as a function of the number of features $p$. Also shown are the same for ridge regression with $\lambda=0.1$ and also the Gaussian process introduced in \sectionname~\ref{sec:gp} and shown in \figurename~\ref{fig:gp}. The GP result is shown as a flat line because it doesn't have an associated number $p$. In detail the first (lowest-$t$) and last (highest-$t$) data points were not used in computing the mean squared error; that choice is debatable, but we are imagining an assessment of the quality of the \emph{interpolations}, not extrapolations, of these models. Note that the OLS predictions are much, much worse at $p\approx n$ (check out all the orders of magnitude on the vertical axis) than they are at very low or very high $p$, but that ridge regression doesn't show this behavior.}
+    \caption{Leave-one-out cross-validation estimates of mean squared prediction error for the feature-weighted OLS fits, as a function of the number of features $p$. Also shown are the same for ridge regression with $\lambda=0.1$ and also the Gaussian process that we will introduce in \sectionname~\ref{sec:gp} and show in \figurename~\ref{fig:gp}; the GP result is shown as a flat line because it doesn't have an associated number $p$. In detail the first (lowest-$t$) and last (highest-$t$) data points were not used in computing the mean squared error; that choice is debatable, but we are imagining an assessment of the quality of the \emph{interpolations}, not extrapolations, of these models. Note that the OLS predictions are much, much worse at $p\approx n$ (check out all the orders of magnitude on the vertical axis) than they are at very low or very high $p$, but that ridge regression doesn't show this behavior.}
     \label{fig:cv}
     \end{mdframed}
 \end{figure}
@@ -494,15 +492,23 @@ The predictive accuracy is indeed a function of $p$.
 In particular, the CVMSE for the feature-weighted OLS fits is bad when $p\approx n$, and much better at $p\ll n$ and $p \gg n$.
 This phenomenology is not particular to this problem.
 It is extremely general.
-There is an effect known in many kinds of regression called ``double descent'' or ``peaking phenomenon'' in which predictive accuracy becomes very poor when the number of free parameters $p$ comes close to the number of data points $n$ (\citealt{jain198239, spigler2018jamming, geiger2019jamming}). For linear models, the ``risk''---the out-of-sample prediction error---blows up when the model capacity just reaches overfitting; at $p=n$ (\citealt{hastie2019surprises}).
-The fundamental reason for this phenomenon is that the ordinary least squares estimates \eqref{eq:OLS} and \eqref{eq:OLS2} require to compute the inverses $(X^\top X)^{-1}$ and $(XX^\top)^{-1}$ respectively, which are very badly conditioned around $p\approx n$. This translates to a large variance for the estimator $\hat \beta$ which implies a large risk. This behavior disappears with many forms of regularization, including Tikhonov regularization (also known as ridge regression, as described in \eqref{eq:ridge}), early stopping \citep{hastie2019surprises}, and dimensionality reduction \citep{huang2020dimensionality}.
+There is an effect known in many kinds of regression called ``double descent'' or ``peaking phenomenon'' or ``jamming'' in which predictive accuracy becomes very poor when the number of free parameters $p$ comes close to the number of data points $n$ (\citealt{jain198239, spigler2018jamming, geiger2019jamming}). For linear models, the ``risk''---the out-of-sample prediction error---blows up when the model capacity just becomes excessive; at $p=n$ (\citealt{hastie2019surprises}).
+The fundamental reason for this phenomenon is that the ordinary least squares estimates \eqref{eq:OLS} and \eqref{eq:OLS2} require to compute the inveses $(X^\top X)^{-1}$ and $(X\,X^\top)^{-1}$ respectively, which are very badly conditioned around $p\approx n$.
+This translates to a large variance for the estimator $\hat \beta$ which implies a large risk.
+One way to think about this is that when the condition number of the matrix $X^\top X$ or $X\,X^\top$ is large, some directions in the data space---some linear combinations of the elements of the data vector $Y$---are very strongly amplified.\footnote{The condition number comes back up below in \sectionname~\ref{sec:implementation}. It turns out that when the condition number is large, not only do the output predictions become very sensitive to the input training data, but also the numerical (computational) stability of the linear algebra can also be badly affected. But we emphasize here that the risk goes bad when the condition number is large \emph{even if} it is possible to perform the linear algebra correctly at high precision.}
+This makes the regression unreasonably sensitive to noise in the data.
+The high-risk behavior at $p\approx n$ disappears with certain kinds of regularization.
+These include the ridge regularization shown in \figurename~\ref{fig:cv} (also known as Tikhonov regression), but also early stopping \citep{hastie2019surprises}, and dimensionality reduction \citep{huang2020dimensionality}.
 
-The CVMSE gets better and worse at different values of $p$;
-and it even gets really \emph{good} at particular values of $p$.
-That's not surprising; there are places where the fit basis is just appropriate for your specific problem.
+Since it is an overloaded concept, we pause here to make a few comments about ``over-fitting''.... HOGG
+
+The CVMSE gets better and worse at different values of $p$.
+That's not surprising; there are places where the fit basis and size and feature weighting are all more appropriate for your specific problem.
 These good-CVMSE places are the best places to work, if you can afford to search for them and find them.
 In general, if you care about predictive accuracy, it is worth doing a search for the values of $p$ (and other hyper-parameters, like regularization strengths and feature-weighting function parameters) that minimize the CVMSE.
 The minimum-CVMSE choices for $p$ and the hyper-parameters will generally be very close to the choices that lead to the best predictions for new data.
+
+HOGG: INSERT POINT ABOUT OVER-CHOOSING YOUR HYPER-PARAMETERS: Over-fitting to the validation operator.
 
 By the way, you might have felt uncomfortable with dropping individual points in this problem, since the points are sort-of regularly spaced in the location space (the $t$ space) to begin with, and become more irregularly spaced when you leave one out.
 How much does this matter?
@@ -618,7 +624,7 @@ Often you need to compute not just a prediction, but also an uncertainty on that
 How faithfully you must compute that uncertainty will depend strongly on the context in which you are doing the fitting or interpolation.
 However, it is often the case in the physical sciences that predictions are required to come with good or conservative estimates of uncertainty.
 There are four-ish sources of uncertainty in the predictions you are making in problems like these:
-(1)~The data points you have $y_i$ are individually noisy.
+(1)~The data points $y_i$ you have are individually noisy.
 (2)~There are finitely many of those data points (there are $n$ of them) and there are gaps between them in the location space $t$.
 (3)~The data points might have uncertain locations or location measurements $t_i$.
 (4)~And the predictions you make depend on hyper-parameter choices, such as the form of the basis, the number of parameters $p$, and any regularization or feature weighting.
@@ -765,8 +771,8 @@ The same Gaussian process limit appears as $p\rightarrow\infty$ (provided we cho
 These random-feature approaches have rarely been used in the natural sciences, but they are potentially of interest in many applications.
 
 In the toy examples used throughout this \documentname, we considered data with locations $t_i$ in a one-dimensional location space or ambient space.
-This was a choice for simplicity of visualization; nothing is fundamental about the locations being one-dimensional.
-The only considerations about dimensionality (SOLEDAD: KSF ASKS: WHAT ABOUT WHEN THE DIMENSIONALITY of $t$ exceeds $n$ or $p$?) is that the functions $g_j(t)$ have to act correctly on the locations $t_i$ whatever their size or shape.
+This was a choice for simplicity of visualization; in principle the locations $t_i$ could be higher dimensional, or live in a different kind of space.
+The most important consideration about the dimensionality and range of the locations is that the functions $g_j(t)$ have to sensibly take the locations $t_i$ as input.
 In astronomy and cosmology contexts, it is common for the locations $t_i$ to be positions on the sphere, and it is common for the natural basis functions to be spherical harmonics, for example.
 
 We also generated our toy data with locations $t_i$ regularly spaced in the location space.
@@ -793,6 +799,7 @@ So although the Fourier basis is just one choice among many, it is the \emph{rig
 % end matter
 
 {\raggedright
+\setlength{\bibsep}{0pt plus 0.3ex} % trust in Hogg
 \bibliographystyle{authordate1}
 \bibliography{references}
 }
@@ -800,22 +807,43 @@ So although the Fourier basis is just one choice among many, it is the \emph{rig
 \appendix
 \section{Mathematical arguments and results}\label{app:math}
 
-To prove that \eqref{} and \eqref{} are equivalent we use a classical result in quadratic optimization (see for instance Chapter 16 of \cite{nocedal2006numerical}).
+As mentioned in the main text, the optimal solutions of the unconstrained objectives \eqref{eq:opt1} and \eqref{eq:ridge} can be obtained by computing the first-order critical points. The first-order critical points are global minima because all the objectives considered are convex in the regression coefficients $\beta$.
+
+To derive the optimal solutions of the constrained optimization we use a classical result in quadratic optimization (see for instance Chapter 16 of \cite{nocedal2006numerical}).
 
 Consider the quadratic optimization problem 
 \begin{equation} \label{qp}
-    \min_x \frac{1}{2} x^TG x + x^\top c \quad \text{ subject to } Ax=b.
+    \arg\min_x \frac{1}{2} x^T G x + x^\top c \quad \text{ subject to } Ax=b.
 \end{equation}
-Assume that $A$ has full row rank and let $Z$ be such that its columns form a basis for the null space of $A$ (i.e. $AZ=0$). If $Z^\top G Z$ is positive definite then the solution of \eqref{qp} is given by the Karush-Kuhn-Tucker conditions, namely 
+
+The first-order necessary conditions for $x^*$ to be a solution of \eqref{qp} is that there is a vector $\lambda^*$ (known as Lagrange multipliers) such that the following system of equations is satisfied:
+
+%Assume that $A$ has full row rank and let $Z$ be such that its columns form a basis for the null space of $A$ (i.e. $AZ=0$). If $Z^\top G Z$ is positive definite then the solution of \eqref{qp} is given by the Karush-Kuhn-Tucker conditions, namely 
 \begin{equation}
     \left[
     \begin{matrix}
-    
+    G & A^\top \\ 
+    A & 0
     \end{matrix}\right]
+    \left[
+    \begin{matrix}
+    x^* \\ 
+    \lambda^*
+    \end{matrix}\right] = 
+    \left[
+    \begin{matrix}
+    -c \\ 
+    b
+    \end{matrix}\right].
+    \label{kkt}
 \end{equation}
+Equation \eqref{kkt} is typically known as the Karush-Kuhn-Tucker conditions (KKT). If the objective function in \eqref{qp} is convex, the KKT conditions are also sufficient for optimality\footnote{The KKT conditions can also characterize optimality in more general cases. For instance, if $A$ has full row rank and $Z$ is the nullspace of $A$, if $Z^\top G Z$ is positive semidefinite the KKT conditions are sufficient for optimality. If $Z^\top G Z$ is positive definite we also have that the solution of \eqref{qp} is unique (which is typically the case in the underparameterized linear regression but not in the overparameterized).}.
+
+Using this formulation it is easy to check that the solution of \eqref{eq:opt2} leads to predictions in \eqref{eq:ridge_sol}, and the solution of \eqref{eq:weighted} produce \eqref{eq:weighted_sol}.
 
 
-\textsl{t. b. d.}\begin{comment}
+
+\begin{comment}
 SOLEDAD: Maybe how you get from the optimization statements to the closed-form solutions, for the under- and over-parameterized cases?
 
 SOLEDAD: Maybe prove the equivalence of the expressions with $C$ and $\Lambda$.
