@@ -1,10 +1,8 @@
+% This document is part of the FlexibleLinearModels project. Copyright 2021 the authors.
+
 % to-do
 % -----
 % - To be submitted to EPJ Data Science https://epjdatascience.springeropen.com/about
-% - Audit for use of \, as the multiply operator?
-% - HOGG: List clearly the assumptions underlying CVMSE and jackknife. They make assumptions about independence of the data points and also something maybe about per-point information content.
-% - SOLEDAD: address the point that some constraints may not be satisfiable
-% - Soledad: Once appendix is done, point down to it from the text at relevant places.
 
 \documentclass[12pt,letterpaper]{article}
 \usepackage[utf8]{inputenc}
@@ -78,9 +76,7 @@ Kate Storey-Fisher (NYU),
 Rachel Ward (UT Austin), and
 Lily Zhao (Yale)
 for valuable conversations and input.
-SV is partially funded by NSF DMS 2044349, EOARD FA9550-18-
-1-7007, and the NSF-Simons Research Collaboration on the Mathematical and Scientific
-Foundations of Deep Learning (MoDL) (NSF DMS-2031985).}}
+SV is partially funded by NSF DMS 2044349, EOARD FA9550-18-1-7007, and the NSF--Simons Research Collaboration on the Mathematical and Scientific Foundations of Deep Learning (MoDL) (NSF DMS-2031985).}}
 
 \noindent
 \textbf{David W. Hogg} \\
@@ -222,7 +218,7 @@ where $\hat{\beta}$ is the $p$-vector (column vector) of the $p$ best-fit values
     ~.
 \end{equation}
 This optimization objective \eqref{eq:opt1} is convex and the optimization problem has a solution in closed form\footnote{
-Note that $\nabla_{\beta} \|Y-X\beta\|^2 = 2X^\top(Y-X\beta)$ so critical points are such that $X^\top Y= X^\top X\beta$. Since the objective is convex all these critical points are global minima. 
+Note that $\nabla_{\beta} \|Y-X\beta\|^2 = 2X^\top(Y-X\beta)$ so critical points are such that $X^\top Y= X^\top X\beta$. Since the objective is convex all these critical points are global minima. Further analysis is given in Appendix \ref{app:math}.
 } as long as the number of parameters (and features) $p$ is less than the number of training points $n$ (and the matrix $X^\top X$ is invertible):
 \begin{equation}
     \hat{\beta} = (X^\top X)^{-1}\,X^\top Y
@@ -242,7 +238,7 @@ The prediction $\hat{Y}_\ast$ for the $y$ values at the test locations $t_\ast$ 
     \hat{Y}_\ast = X_\ast\,(X^\top X)^{-1}\,X^\top Y
     ~.
 \end{equation}
-Examples of OLS applied to some toy data\footnote{The algorithm by which the toy data were made---and indeed all of the code executed to make the figures for this \documentname---is available online at \url{https://github.com/davidwhogg/FlexibleLinearModels}.} are shown in \figurename~\ref{fig:ols1}.
+Examples of OLS applied to some toy data\footnote{The algorithm by which the toy data were made---and indeed all of the code used to make the figures for this \documentname---is available online at \url{https://github.com/davidwhogg/FlexibleLinearModels}.} are shown in \figurename~\ref{fig:ols1}.
 This form \eqref{eq:OLS} of the prediction of new test data is called ordinary least squares (OLS). It has many good properties, some of which are encoded in the Gauss--Markov theorem.
 In particular, if the noise contributions in the model given in equation \eqref{eq.model} are uncorrelated, have zero mean, and equal variances for $i=1,\ldots, n$ then the Gauss--Markov theorem states that the OLS estimator has the lowest variance within the class of unbiased estimators that are linear in $Y$ (see, for example, \citealt{esl}, Ch 3).
 \begin{figure}[t]
@@ -298,7 +294,7 @@ The ridge-regularized prediction for new data looks like
     \hat{Y}_\ast = X_\ast\,(X^\top X + \lambda\,I)^{-1}\,X^\top Y
     ~,
 \end{equation}
-where $I$ is the $p\times p$ identity.
+where $I$ is the $p\times p$ identity (see Appendix \ref{app:math}).
 In the language of Bayesian inference, $\lambda$ can be seen as the inverse of a prior variance for the parameters $\beta_j$.
 The salutary effect of the ridge regularization is shown in \figurename~\ref{fig:ridge}.
 \begin{figure}[t]
@@ -347,7 +343,7 @@ The under-parameterized and over-parameterized optimization statements \eqref{eq
     \hat{\beta} = \lim_{\lambda\rightarrow 0^+}\left[\arg\min_\beta \|Y - X\,\beta\|_2^2 + \lambda\,\|\beta\|_2^2\right]
     ~;
 \end{equation}
-in the limit, this delivers the OLS solution in either case.
+in the limit, this delivers the OLS solution in either case and doesn't require the constraint in \eqref{eq:opt2} to be satisfied.
 
 In the over-parameterized case ($p>n$), the prediction looks like
 \begin{equation}\label{eq:OLS2}
@@ -400,8 +396,9 @@ This can be seen as the prediction for new data resulting from the following opt
 which---in analogy to the optimizations \eqref{eq:opt2} and \eqref{eq:opt3}---can also be written as
 \begin{equation}
     \hat{\beta} = \lim_{\lambda\rightarrow 0^+}\left[\arg\min_\beta \|Y - X\,\beta\|_2^2 + \lambda\,\|\Lambda^{1/2}\,\beta\|_2^2\right]
-    ~.
+    ~,
 \end{equation}
+which doesn't require the constraints in \eqref{eq:weighted} to be satisfied. 
 This optimization\footnote{If you are a physicist and you don't like the mathematical $\|\cdot\|_2^2$ notation---if you prefer to look at quantities that are obvious scalar forms---then recall that $\|\Lambda^{1/2}\,\beta\|_2^2 = \beta^\top\Lambda\,\beta$.
 That right-hand-side object is a gauge-invariant object so long as $\beta$ and $\Lambda$ are also gauge-invariant objects themselves.
 Yes, data analysis can have this kind of geometric structure!}
@@ -442,7 +439,7 @@ When you put these all together, the feature-weighted, data-weighted least squar
     \hat{Y} &= X_\ast\,\Lambda^{-1}\,X^\top (X\,\Lambda^{-1}\,X^\top + C)^{-1}\,Y
     ~.
 \end{align}
-We discuss the equivalence of these below in \appendixname~\ref{app:math}. These expressions appear in Bayesian-inference contexts (see, for example, \citealt{products}) when $\Lambda^{-1}$ is the variance of the prior on the parameter vector $\beta$ and $C$ is the variance of the noise on the data vector $Y$.
+The equivalence of these is due to the Woodbury matrix identity \citep{henderson1981deriving}. These expressions appear in Bayesian-inference contexts (see, for example, \citealt{products}) when $\Lambda^{-1}$ is the variance of the prior on the parameter vector $\beta$ and $C$ is the variance of the noise on the data vector $Y$.
 They are solutions to the optimization
 \begin{equation}
     \hat{\beta} = \arg\min_\beta \|C^{-1/2}\,(Y - X\,\beta)\|_2^2 + \|\Lambda^{1/2}\,\beta\|_2^2
@@ -468,8 +465,9 @@ In the Real World~(tm), you don't get this luxury.
 The data are given to you without documentation!
 Indeed, understanding the generating process of the world is the goal of investigations in the natural sciences (such as astronomy); the investigator does not know the generating process at the outset.
 
-Given a data set (location--data pairs $t_i, y_i$), what is the best way to empirically estimate, from those data, the out-of-sample prediction error---that is, how do you estimate how well you are likely to predict new data?
-The only good answer to this is cross-validation:
+Given a data set (location--data pairs $t_i, y_i$), what is the best way to empirically estimate, from those data, the out-of-sample prediction error?
+That is, how do you estimate how well you are likely to predict new data?
+A reasonable answer to this is cross-validation:
 In cross-validation, we leave out a part of the data (in the most extreme form, leave out one single data point at a time), train the model using all but the left-out part, and predict the left-out part. Then this process is iterated over all choices of what part (or point) to leave out.
 This process is illustrated in \figurename~\ref{fig:loo}, where we show $23$ fits, each of which is trained to the 22 points remaining when we leave one of the $n=23$ points out.
 Also shown is the prediction, in each leave-one-out fit, for the left-out point.
@@ -483,7 +481,7 @@ Also shown is the prediction, in each leave-one-out fit, for the left-out point.
 
 The prediction for the mean-squared error (MSE) for new data is the mean of the square of the differences between the leave-one-out predictions and the left-out data.
 This leave-one-out cross-validation MSE (CVMSE) will be different for different choices for the basis, size ($p$), and regularization of the fits you do.
-It is a fairly reliable and well-studied method for assessing predictive accuracy (see, for example, \citealt{cv}), although it does depend on some assumptions (for example, about the distribution of predictive information across individual data points, maybe).
+It is a fairly reliable and well-studied method for assessing predictive accuracy (see, for example, \citealt{cv}), although it does depend on some assumptions (for example, that data points are not duplicated or strongly corrrelated, and that the predictive information in the data is distributed among multiple individual data points).
 An example of CVMSE for two models (the feature-weighted OLS and the ridge regression) are shown for our toy data, as a function of the number of features $p$, in \figurename~\ref{fig:cv}.
 The predictive accuracy is indeed a function of $p$.
 \begin{figure}[t]
@@ -521,7 +519,7 @@ The minimum-CVMSE choices for $p$ and the hyper-parameters will generally be ver
 There is one more point to make about over-fitting which is that, when your data set is small, it is possible to over-fit even your cross-validation.
 This problem is beyond the scope of this \documentname; all we will say here is that it is not possible to make precise settings of many hyper-parameters through cross validation.
 Because in cross validation you are making use of your data to set the properties of your regression, there are dangers of over-adapting your method to your data.
-It is safer to have a fully independent validation data set, but this is rarely practical (and it doesn't completely protect you either \citealt{SOLEDAD}).
+It is safer to have a fully independent validation data set, but this is rarely practical (and it doesn't completely protect you either \citealt{cifar10}).
 
 By the way, you might have felt uncomfortable with dropping individual points in this problem, since the points are sort-of regularly spaced in the location space (the $t$ space) to begin with, and become more irregularly spaced when you leave one out.
 How much does this matter?
@@ -886,9 +884,9 @@ obtaining the formulation in \eqref{qp} for $G=\Lambda$, $c=0$, $A=X$, $b=Y$ and
  {\begin{bmatrix}  {A} &   {B} \\  {C} &  {D} \end{bmatrix}}^{-1}= \\ {\begin{bmatrix}  {A} ^{-1}+  {A} ^{-1}  {B} \left(  {D} -  {CA} ^{-1}  {B} \right)^{-1}  {CA} ^{-1}& -  {A} ^{-1}  {B} \left(  {D} -  {CA} ^{-1}  {B} \right)^{-1}\\-\left(  {D} -  {CA} ^{-1}  {B} \right)^{-1}  {CA} ^{-1}& \left(  {D} -  {CA} ^{-1}  {B} \right)^{-1}\end{bmatrix}}.
 \end{multline}
 
-In the particular case of \eqref{kkt2} it suffices to compute the top right block the inverse. Obtaining that if both $\Lambda$ and $X\Lambda^{-1}X^\top$ are invertible we have 
+In the particular case of \eqref{kkt2} it suffices to compute the top right block the inverse. Obtaining that if both $\Lambda$ and $X\,\Lambda^{-1}X^\top$ are invertible we have 
 \begin{equation}
-    \hat \beta = \Lambda^{-1}X^\top(X\Lambda^{-1}X^\top)^{-1}Y. 
+    \hat \beta = \Lambda^{-1}\,X^\top(X\,\Lambda^{-1}X^\top)^{-1}\,Y. 
 \end{equation}
 
 \begin{comment}
