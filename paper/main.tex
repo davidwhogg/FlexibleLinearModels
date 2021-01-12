@@ -1,12 +1,10 @@
 % to-do
 % -----
-% - Address the META over-fitting point that if you do lots of CVs and $n$ is small, you are probably still over-fitting. For example, the $p=73$ result is probably an over-fit. SV has an example in the literature to be cited. Goes in the discussion. But maybe also gets hinted in the introduction.
-% - Incorporate remaining Zhao comments
-% - Are we clear that the feature weighting is a kind of regularization? I (DWH) think it IS because it affects how the L2 on beta affects different parameters. SV says that maybe we should get explicit about the regularization points, and when the regularization is implicit or hidden.
-% - In uncertainties, we talk about Bayesian. Should we also talk about frequentist and/or information theory?
-% - Audit for use of \, as the multiply operator? Fix the kerning around the ^\top items?
+% - To be submitted to EPJ Data Science https://epjdatascience.springeropen.com/about
+% - Audit for use of \, as the multiply operator?
 % - HOGG: List clearly the assumptions underlying CVMSE and jackknife. They make assumptions about independence of the data points and also something maybe about per-point information content.
-% - SOLEDAD: address constraints may not be satisfiable
+% - SOLEDAD: address the point that some constraints may not be satisfiable
+% - Soledad: Once appendix is done, point down to it from the text at relevant places.
 
 \documentclass[12pt,letterpaper]{article}
 \usepackage[utf8]{inputenc}
@@ -156,6 +154,8 @@ In some cases you have strong reasons to use a particular basis.
 In other cases you don't.
 The differences in these beliefs and the differences in your objectives will change what methods you choose and how you use and analyze them.
 We'll try to be useful to you no matter where you're at.
+This document does not deliver new research results on the mathematics or statistics of regression.
+It is novel only in that it makes very specific the connection between regularized linear regression and Gaussian processes.
 
 Ordinary least squares is reviewed in \sectionname~\ref{sec:ols}.
 The extensions of weighted least squares and ridge regression are shown in \sectionname~\ref{sec:extensions}.
@@ -218,14 +218,14 @@ The idea of least-squares fitting is that the ``best'' values of the parameters 
 \end{equation}
 where $\hat{\beta}$ is the $p$-vector (column vector) of the $p$ best-fit values $\hat{\beta}_j$ of the parameters $\beta_j$, and $\|q\|_2^2$ denotes the squared L2-norm, or the \emph{sum of squares} of the components of $q$
 \begin{equation}
-    \|q\|_2^2 \equiv q^\top\,q
+    \|q\|_2^2 \equiv q^\top q
     ~.
 \end{equation}
 This optimization objective \eqref{eq:opt1} is convex and the optimization problem has a solution in closed form\footnote{
 Note that $\nabla_{\beta} \|Y-X\beta\|^2 = 2X^\top(Y-X\beta)$ so critical points are such that $X^\top Y= X^\top X\beta$. Since the objective is convex all these critical points are global minima. 
 } as long as the number of parameters (and features) $p$ is less than the number of training points $n$ (and the matrix $X^\top X$ is invertible):
 \begin{equation}
-    \hat{\beta} = (X^\top\,X)^{-1}\,X^\top\,Y
+    \hat{\beta} = (X^\top X)^{-1}\,X^\top Y
     ~.
     \label{OLS-under}
 \end{equation}
@@ -239,13 +239,12 @@ We care only about the predictions at a set of new ``test'' locations $t_\ast$, 
 From the new test times $t_\ast$ we create the test feature matrix $X_\ast$ (by the same feature embedding functions $g_j(t)$).
 The prediction $\hat{Y}_\ast$ for the $y$ values at the test locations $t_\ast$ becomes
 \begin{equation}\label{eq:OLS}
-    \hat{Y}_\ast = X_\ast\,(X^\top\,X)^{-1}\,X^\top\,Y
+    \hat{Y}_\ast = X_\ast\,(X^\top X)^{-1}\,X^\top Y
     ~.
 \end{equation}
-Examples of OLS applied to some toy data are shown in \figurename~\ref{fig:ols1}.
+Examples of OLS applied to some toy data\footnote{The algorithm by which the toy data were made---and indeed all of the code executed to make the figures for this \documentname---is available online at \url{https://github.com/davidwhogg/FlexibleLinearModels}.} are shown in \figurename~\ref{fig:ols1}.
 This form \eqref{eq:OLS} of the prediction of new test data is called ordinary least squares (OLS). It has many good properties, some of which are encoded in the Gauss--Markov theorem.
 In particular, if the noise contributions in the model given in equation \eqref{eq.model} are uncorrelated, have zero mean, and equal variances for $i=1,\ldots, n$ then the Gauss--Markov theorem states that the OLS estimator has the lowest variance within the class of unbiased estimators that are linear in $Y$ (see, for example, \citealt{esl}, Ch 3).
-
 \begin{figure}[t]
     \begin{mdframed}
     \includegraphics[width=\figurewidth]{paper/OLS-under.pdf}
@@ -260,9 +259,9 @@ The prediction \eqref{eq:OLS} when $p<n$ (the under-parameterized or traditional
 That is, if $R$ is an invertible $p\times p$ matrix, the prediction using $X'\leftarrow X\,R$ will be identical to the prediction using the original $X$.
 This affine invariance will return in a different form in the over-parameterized regime, below.
 
-Although the OLS prediction \eqref{eq:OLS} is affine invariant with respect to $p$-dimensional transformations, it is \emph{not} affine invariant with respect to $n$-dimensional transformations, such as a re-weighting of the input data. Indeed, if you know weights or inverse variances for your data points $y_i$, conceptually you can put them into a weight matrix $C^{-1}$ (written this way to emphasize that reweighting is usually inverse-variance weighting) and write
+Although the OLS prediction \eqref{eq:OLS} is affine invariant with respect to $p$-dimensional transformations, it is \emph{not} affine invariant with respect to $n$-dimensional transformations, such as a re-weighting of the input data. Indeed, if you know weights or inverse variances for your data points, conceptually you can put them into a weight matrix $C^{-1}$ (written this way to emphasize that reweighting is usually inverse-variance weighting) and write
 \begin{equation}\label{eq:wls}
-    \hat{Y}_\ast = X_\ast\,(X^\top\,C^{-1}\,X)^{-1}\,X^\top\,C^{-1}\,Y
+    \hat{Y}_\ast = X_\ast\,(X^\top C^{-1}\,X)^{-1}\,X^\top C^{-1}\,Y
     ~,
 \end{equation}
 where the weight matrix $C^{-1}$ is $n\times n$ (and often diagonal in standard applications). The weight matrix $C^{-1}$ is sometimes called the information tensor (or information matrix) and its inverse $C$ is often called the covariance matrix or the noise variance tensor.
@@ -270,7 +269,7 @@ where the weight matrix $C^{-1}$ is $n\times n$ (and often diagonal in standard 
 This form \eqref{eq:wls} of least squares is called \emph{weighted least squares} (WLS) because of the data weighting (not to be confused with \emph{feature} weighting, to appear below).
 It is also called chi-squared fitting because it optimizes the scalar objective commonly called chi-squared:
 \begin{equation}
-    \chi^2 = (Y - X\,\beta)^\top\,C^{-1}\,(Y - X\,\beta)
+    \chi^2 = (Y - X\,\beta)^\top C^{-1}\,(Y - X\,\beta)
     ~.
 \end{equation}
 (If that isn't obviously chi-squared to you, recall that $C^{-1}$ is often diagonal and has the inverses of the squares of the data uncertainties on that diagonal.)
@@ -296,7 +295,7 @@ where $\lambda>0$ is a regularization parameter that penalizes large values for 
 This optimization is also convex.
 The ridge-regularized prediction for new data looks like
 \begin{equation} \label{eq:ridge_sol}
-    \hat{Y}_\ast = X_\ast\,(X^\top\,X + \lambda\,I)^{-1}\,X^\top\,Y
+    \hat{Y}_\ast = X_\ast\,(X^\top X + \lambda\,I)^{-1}\,X^\top Y
     ~,
 \end{equation}
 where $I$ is the $p\times p$ identity.
@@ -318,13 +317,13 @@ It is also the case that the regularization need not be proportional to the iden
 
 You can combine both the point weighting from WLS and the generalized ridge regression into a weighted ridge that looks like
 \begin{equation}\label{eq:foo}
-    \hat{Y}_\ast = X_\ast\,(X^\top\,C^{-1}\,X + \Lambda)^{-1}\,X^\top\,C^{-1}\,Y
+    \hat{Y}_\ast = X_\ast\,(X^\top C^{-1}\,X + \Lambda)^{-1}\,X^\top C^{-1}\,Y
     ~.
 \end{equation}
 This form has good properties for many real-world physics applications, where data-point error bars are often known, and functions are often expected to be smooth.
 We'll discuss this form \eqref{eq:foo} more below in \sectionname~\ref{sec:fwols},
 but briefly we can say here that it appears in Bayesian inference contexts where the data points $y_i$ are treated as having Gaussian noise associated with them (with known variance tensor or covariance matrix $C$) and there is a Gaussian prior on the parameter vector $\beta$ (with known variance $\Lambda^{-1}$).
-We have discussed that model elsewhere (\citealt{products}).
+We have discussed that model elsewhere (\citealt{products}).\footnote{In our previous discussion of this product of Gaussians, the notation differs. What's called $\Lambda^{-1}$ here is called $\Lambda$ in \citet{products}.}
 It is also useful sometimes to think of the ``units'' or dimensions of the quantities in \eqref{eq:foo}: In the Bayesian setting, the units of $C$ would be the square of the units of $Y$ and the units of $\Lambda^{-1}$ would be the square of the units of the ratio $Y/X$ (the square of the units of $\beta$).
 
 \section{Over-parameterization}\label{sec:overpar}
@@ -352,7 +351,7 @@ in the limit, this delivers the OLS solution in either case.
 
 In the over-parameterized case ($p>n$), the prediction looks like
 \begin{equation}\label{eq:OLS2}
-    \hat{Y}_\ast = X_\ast\,X^\top\,(X\,X^\top)^{-1}\,Y
+    \hat{Y}_\ast = X_\ast\,X^\top (X\,X^\top)^{-1}\,Y
     ~,
 \end{equation}
 provided that $X\,X^\top$ is invertible (which will usually be the case).
@@ -379,9 +378,9 @@ The two equations for OLS---\eqref{eq:OLS} and \eqref{eq:OLS2}---can be unified 
     \hat{Y}_\ast = X_\ast\,X^\dagger\,Y
     ~.
 \end{equation}
-The pseudo-inverse of a diagonal matrix is defined as the diagonal matrix made by inverting the non-zero diagonal entries. And for any non-diagonal (or any non-square) matrix $X$ the pseudo-inverse is defined by taking the singular-value decomposition (SVD) of $X$, $X=U\,S\,V$, with $S$ diagonal and $U,V$ orthogonal, then $X^\dagger \equiv V^\top\,S^\dagger\,U^\top$.
+The pseudo-inverse of a diagonal matrix is defined as the diagonal matrix made by inverting the non-zero diagonal entries. And for any non-diagonal (or any non-square) matrix $X$ the pseudo-inverse is defined by taking the singular-value decomposition (SVD) of $X$, $X=U\,S\,V$, with $S$ diagonal and $U,V$ orthogonal, then $X^\dagger \equiv V^\top S^\dagger\,U^\top$.
 
-This pseudo-inverse form \eqref{eq:OLS3} of OLS is extremely general: It works for both the $p\le n$ and $p>n$ cases, and it works when the $X\,X^\top$ or $X^\top\,X$ matrices are not invertible.
+This pseudo-inverse form \eqref{eq:OLS3} of OLS is extremely general: It works for both the $p\le n$ and $p>n$ cases, and it works when the $X\,X^\top$ or $X^\top X$ matrices are not invertible.
 There can be significant numerical issues with implementing the pseudo-inverse; we comment on those in \sectionname~\ref{sec:implementation}.
 
 \section{Feature weighting}\label{sec:fwols}
@@ -391,16 +390,16 @@ That is, rotations and scalings in the feature space \emph{will} affect predicti
 It behooves us to re-scale the features (the $p$ $n$-vectors of the feature matrix $X$) in a sensible way, like for instance, to encourage the fit to use low-frequency features more than high-frequency features (\citealt{xie2020weighted, bah2016sample, rauhut2016interpolation}).
 We can encode these feature weights in a $p\times p$ diagonal weight matrix $\Lambda^{-1}$ and the prediction becomes
 \begin{equation} \label{eq:weighted_sol}
-    \hat{Y}_\ast = X_\ast\,\Lambda^{-1}\,X^\top\,(X\,\Lambda^{-1}\,X^\top)^{-1}\,Y
+    \hat{Y}_\ast = X_\ast\,\Lambda^{-1}\,X^\top (X\,\Lambda^{-1}\,X^\top)^{-1}\,Y
 \end{equation}
-This can be seen as the prediction for new data resulting from the following optimization:
+This can be seen as the prediction for new data resulting from the following optimization (again, assuming the data can be interpolated):
 \begin{equation} \label{eq:weighted}
     \hat{\beta} = \arg\min_\beta \|\Lambda^{1/2}\,\beta\|_2^2 ~~\mbox{subject to}~~ Y = X\,\beta
     ~,
 \end{equation}
 which---in analogy to the optimizations \eqref{eq:opt2} and \eqref{eq:opt3}---can also be written as
 \begin{equation}
-    \hat{\beta} = \lim_{\lambda\rightarrow 0^+}\left[\arg\min_\beta \|Y - X\,\beta\|_2^2 + \lambda\,\|\Lambda^{1/2}\beta\|_2^2\right]
+    \hat{\beta} = \lim_{\lambda\rightarrow 0^+}\left[\arg\min_\beta \|Y - X\,\beta\|_2^2 + \lambda\,\|\Lambda^{1/2}\,\beta\|_2^2\right]
     ~.
 \end{equation}
 This optimization\footnote{If you are a physicist and you don't like the mathematical $\|\cdot\|_2^2$ notation---if you prefer to look at quantities that are obvious scalar forms---then recall that $\|\Lambda^{1/2}\,\beta\|_2^2 = \beta^\top\Lambda\,\beta$.
@@ -438,12 +437,18 @@ In feature-weighted OLS, this property can be exploited to make the fits smooth,
 In the most general case, you have not just a set of feature weights $\Lambda^{-1}$, you also have a set of data-point weights $C^{-1}$ (which, in standard settings, would be the inverses of the variances of the noise affecting the data points $y_i$).
 When you put these all together, the feature-weighted, data-weighted least squares predictions are given by either of these two equivalent expressions:
 \begin{align}\label{eq:LambdaC1}
-    \hat{Y} &= X_\ast\,(X^\top\,C^{-1}\,X + \Lambda)^{-1}\,X^\top\,C^{-1}\,Y
+    \hat{Y} &= X_\ast\,(X^\top C^{-1}\,X + \Lambda)^{-1}\,X^\top C^{-1}\,Y
     \\ \label{eq:LambdaC2}
-    \hat{Y} &= X_\ast\,\Lambda^{-1}\,X^\top\,(X\,\Lambda^{-1}\,X^\top + C)^{-1}\,Y
+    \hat{Y} &= X_\ast\,\Lambda^{-1}\,X^\top (X\,\Lambda^{-1}\,X^\top + C)^{-1}\,Y
     ~.
 \end{align}
-We discuss the equivalence of these below in \appendixname~\ref{app:math}. These expressions appear in Bayesian-inference contexts (see, for example \citealt{products}) when $\Lambda^{-1}$ is the variance of the prior on the parameter vector $\beta$ and $C$ is the variance of the noise on the data vector $Y$. In those contexts, the units of $C$ would be the units of $Y$ squared, and the units of $\Lambda^{-1}$ would be the square of the ratio of the units of $Y$ to the units of $X$ (the square of the units of $\beta$). These weighted-feature, weighted-data least-square forms are good because (if the weightings are chosen appropriately) they lead to smooth solutions that are not required to pass precisely through every data point. This is appropriate in common, real situations in which data are noisy and the world is smooth. Which form you choose, between \eqref{eq:LambdaC1} and \eqref{eq:LambdaC2}, depends on a few things, but primarily $p/n$. If $p<n$ it's both faster and more stable to use \eqref{eq:LambdaC1}; if $p>n$ it's faster and more stable to use \eqref{eq:LambdaC2}. We show a toy example of a fit with both feature weights $\Lambda^{-1}$ and data weights $C^{-1}$ in \figurename~\ref{fig:fwwls}.
+We discuss the equivalence of these below in \appendixname~\ref{app:math}. These expressions appear in Bayesian-inference contexts (see, for example, \citealt{products}) when $\Lambda^{-1}$ is the variance of the prior on the parameter vector $\beta$ and $C$ is the variance of the noise on the data vector $Y$.
+They are solutions to the optimization
+\begin{equation}
+    \hat{\beta} = \arg\min_\beta \|C^{-1/2}\,(Y - X\,\beta)\|_2^2 + \|\Lambda^{1/2}\,\beta\|_2^2
+    ~.
+\end{equation}
+The units of $C$ must be the units of $Y$ squared, and the units of $\Lambda^{-1}$ must be the square of the ratio of the units of $Y$ to the units of $X$ (the square of the units of $\beta$). These weighted-feature, weighted-data least-square forms \eqref{eq:LambdaC1} and \eqref{eq:LambdaC2} are good because (if the weightings are chosen appropriately) they lead to smooth solutions that are not required to pass precisely through every data point. This is appropriate in common, real situations in which data are noisy and the world is smooth. Which form you choose, between \eqref{eq:LambdaC1} and \eqref{eq:LambdaC2}, depends on a few things, but primarily $p/n$. If $p<n$ it's both faster and more stable to use \eqref{eq:LambdaC1}; if $p>n$ it's faster and more stable to use \eqref{eq:LambdaC2}. We show a toy example of a fit with both feature weights $\Lambda^{-1}$ and data weights $C^{-1}$ in \figurename~\ref{fig:fwwls}.
 \begin{figure}[t]
     \begin{mdframed}
     \includegraphics[width=\figurewidth]{paper/weighted-WLS.pdf}
@@ -500,7 +505,12 @@ This makes the regression unreasonably sensitive to noise in the data.
 The high-risk behavior at $p\approx n$ disappears with certain kinds of regularization.
 These include the ridge regularization shown in \figurename~\ref{fig:cv} (also known as Tikhonov regression), but also early stopping \citep{hastie2019surprises}, and dimensionality reduction \citep{huang2020dimensionality}.
 
-Since it is an overloaded concept, we pause here to make a few comments about ``over-fitting''.... HOGG
+Sometimes the word ``over-fitting'' is used to describe models that are too flexible.
+In our view, a model is properly called ``over-fit'' when the prediction of the regression on held-out data---what the statisticians call ``risk''---is bad.
+So over-fitting happens not universally when the number of parameters is large, but instead when the number of parameters is comparable to the number of data points, and (also) the regularization is inappropriate.
+\figurename~\ref{fig:cv} shows that models with both small and large numbers $p$ of parameters can make good predictions for held-out data, and that regularization can also protect a model from over-fitting, even when $p\approx n$.
+We don't mean to imply that over-fitting is not a problem in regression; it can be!
+Our recommendation is just that the problem of over-fitting be analyzed empirically through cross-validation, not through intuitive ideas about the number of parameters.
 
 The CVMSE gets better and worse at different values of $p$.
 That's not surprising; there are places where the fit basis and size and feature weighting are all more appropriate for your specific problem.
@@ -508,7 +518,10 @@ These good-CVMSE places are the best places to work, if you can afford to search
 In general, if you care about predictive accuracy, it is worth doing a search for the values of $p$ (and other hyper-parameters, like regularization strengths and feature-weighting function parameters) that minimize the CVMSE.
 The minimum-CVMSE choices for $p$ and the hyper-parameters will generally be very close to the choices that lead to the best predictions for new data.
 
-HOGG: INSERT POINT ABOUT OVER-CHOOSING YOUR HYPER-PARAMETERS: Over-fitting to the validation operator.
+There is one more point to make about over-fitting which is that, when your data set is small, it is possible to over-fit even your cross-validation.
+This problem is beyond the scope of this \documentname; all we will say here is that it is not possible to make precise settings of many hyper-parameters through cross validation.
+Because in cross validation you are making use of your data to set the properties of your regression, there are dangers of over-adapting your method to your data.
+It is safer to have a fully independent validation data set, but this is rarely practical (and it doesn't completely protect you either \citealt{SOLEDAD}).
 
 By the way, you might have felt uncomfortable with dropping individual points in this problem, since the points are sort-of regularly spaced in the location space (the $t$ space) to begin with, and become more irregularly spaced when you leave one out.
 How much does this matter?
@@ -705,10 +718,10 @@ The \code{lstsq()} function requires a \code{rcond} input, which says at what (d
 It usually makes sense to set this dimensionless \code{rcond} input to something like machine precision, which is about \code{1e-16} for our current hardware--software setups.
 
 You might think that all of this is academic, but it really isn't when the number of features $p$ is close to the number of data points $n$.
-For example, in our toy-data OLS experiments in this paper with $n=23$, the matrix $X^\top\,X$ has a condition number (ratio of largest eigenvalue to smallest nonzero eigenvalue) that saturates machine precision for the entire range $12 < p < 50$.
+For example, in our toy-data OLS experiments in this paper with $n=23$, the matrix $X^\top X$ has a condition number (ratio of largest eigenvalue to smallest nonzero eigenvalue) that saturates machine precision for the entire range $12 < p < 50$.
 And that's for $n=23$; things generally get worse as $n$ gets larger.
 
-Related to this, if you have a choice between formulations that involve an inverse of a square, like $(X^\top\,X)^{-1}\,X^\top\,Y$, and formulations that involve a pseudo-inverse, like $X^\dagger\,Y$, you should do the latter, because $X^\top\,X$ has the \emph{square} of the condition number of $X$.
+Related to this, if you have a choice between formulations that involve an inverse of a square, like $(X^\top X)^{-1}\,X^\top Y$, and formulations that involve a pseudo-inverse, like $X^\dagger\,Y$, you should do the latter, because $X^\top X$ has the \emph{square} of the condition number of $X$.
 When you want to execute $X^\dagger\,Y$, as we do in \eqref{eq:OLS3}, you should again use \code{lstsq()}, which was literally designed for these applications; use \code{lstsq(X, Y, rcond=tiny)}.
 This function returns the best estimate it can for $X^\dagger\,Y$, so
 it should be better than computing a pseudo-inverse \code{pinv(X)} and then matrix-multiplying \code{pinv(X)} with \code{Y}.
@@ -805,7 +818,7 @@ So although the Fourier basis is just one choice among many, it is the \emph{rig
 }
 
 \appendix
-\section{Mathematical arguments and results}\label{app:math}
+\section{Mathematical arguments}\label{app:math}
 
 As mentioned in the main text, the optimal solutions of the unconstrained objectives \eqref{eq:opt1} and \eqref{eq:ridge} can be obtained by computing the first-order critical points. The first-order critical points are global minima because all the objectives considered are convex in the regression coefficients $\beta$.
 
@@ -813,7 +826,7 @@ To derive the optimal solutions of the constrained optimization we use a classic
 
 Consider the quadratic optimization problem 
 \begin{equation} \label{qp}
-    \arg\min_x \frac{1}{2} x^T G x + x^\top c \quad \text{ subject to } Ax=b.
+    \arg\min_x \frac{1}{2} x^T G\, x + x^\top c \quad \text{ subject to } A\,x=b.
 \end{equation}
 
 The first-order necessary conditions for $x^*$ to be a solution of \eqref{qp} is that there is a vector $\lambda^*$ (known as Lagrange multipliers) such that the following system of equations is satisfied:
@@ -837,11 +850,46 @@ The first-order necessary conditions for $x^*$ to be a solution of \eqref{qp} is
     \end{matrix}\right].
     \label{kkt}
 \end{equation}
-Equation \eqref{kkt} is typically known as the Karush-Kuhn-Tucker conditions (KKT). If the objective function in \eqref{qp} is convex, the KKT conditions are also sufficient for optimality\footnote{The KKT conditions can also characterize optimality in more general cases. For instance, if $A$ has full row rank and $Z$ is the nullspace of $A$, if $Z^\top G Z$ is positive semidefinite the KKT conditions are sufficient for optimality. If $Z^\top G Z$ is positive definite we also have that the solution of \eqref{qp} is unique (which is typically the case in the underparameterized linear regression but not in the overparameterized).}.
+Equation \eqref{kkt} is typically known as the Karush-Kuhn-Tucker conditions (KKT). If the objective function in \eqref{qp} is convex, the KKT conditions are also sufficient for optimality\footnote{The KKT conditions can also characterize optimality in more general cases. For instance, if $A$ has full row rank and $Z$ is the nullspace of $A$, if $Z^\top G\, Z$ is positive semidefinite the KKT conditions are sufficient for optimality. If $Z^\top G\, Z$ is positive definite we also have that the solution of \eqref{qp} is unique (which is typically the case in the underparameterized linear regression but not in the overparameterized).}.
 
-Using this formulation it is easy to check that the solution of \eqref{eq:opt2} leads to predictions in \eqref{eq:ridge_sol}, and the solution of \eqref{eq:weighted} produce \eqref{eq:weighted_sol}.
+Using this formulation it is easy to check that the solution of \eqref{eq:opt2} leads to predictions in \eqref{eq:ridge_sol}, and the solution of \eqref{eq:weighted} produce \eqref{eq:weighted_sol}. For instance, in order to show the latter we consider 
+\begin{equation} \label{eq:weighted_app}
+    \hat{\beta} = \arg\min_\beta \|\Lambda^{1/2}\,\beta\|_2^2 ~~\mbox{subject to}~~ Y = X\,\beta
+    ~,
+\end{equation}
+or equivalently 
+\begin{equation}
+    \hat{\beta} = \arg\min_\beta \frac{1}{2}\beta^\top \Lambda\,\beta ~~\mbox{subject to}~~  X\,\beta = Y
+    ~,
+\end{equation}
+obtaining the formulation in \eqref{qp} for $G=\Lambda$, $c=0$, $A=X$, $b=Y$ and $x=\beta$. Using the KKT conditions we obtain
+\begin{equation}
+    \left[
+    \begin{matrix}
+    \hat \beta \\ 
+    \lambda^*
+    \end{matrix}\right] =
+    \left[
+    \begin{matrix}
+    \Lambda & X^\top \\ 
+    X & 0
+    \end{matrix}\right]^{-1}
+    \left[
+    \begin{matrix}
+    0 \\ 
+    Y
+    \end{matrix}\right],
+    \label{kkt2}
+\end{equation}
+(assuming the KKT matrix is invertible). Luckily there exists a complete characterization for the inverse of $2\times 2$ block matrices (see \cite{lu2002inverses}). In particular if $A$ and $D - CA^{-1}B$ are invertible matrices we have
+\begin{multline} 
+ {\begin{bmatrix}  {A} &   {B} \\  {C} &  {D} \end{bmatrix}}^{-1}= \\ {\begin{bmatrix}  {A} ^{-1}+  {A} ^{-1}  {B} \left(  {D} -  {CA} ^{-1}  {B} \right)^{-1}  {CA} ^{-1}& -  {A} ^{-1}  {B} \left(  {D} -  {CA} ^{-1}  {B} \right)^{-1}\\-\left(  {D} -  {CA} ^{-1}  {B} \right)^{-1}  {CA} ^{-1}& \left(  {D} -  {CA} ^{-1}  {B} \right)^{-1}\end{bmatrix}}.
+\end{multline}
 
-
+In the particular case of \eqref{kkt2} it suffices to compute the top right block the inverse. Obtaining that if both $\Lambda$ and $X\Lambda^{-1}X^\top$ are invertible we have 
+\begin{equation}
+    \hat \beta = \Lambda^{-1}X^\top(X\Lambda^{-1}X^\top)^{-1}Y. 
+\end{equation}
 
 \begin{comment}
 SOLEDAD: Maybe how you get from the optimization statements to the closed-form solutions, for the under- and over-parameterized cases?
