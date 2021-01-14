@@ -120,7 +120,7 @@ If you have encountered and solved problems like these, you have made these thre
 The second choice---about the number of coefficients to fit---is usually made heuristically, and often subject to the strongly believed opinion that you \emph{must have fewer parameters than data points}.
 Here we are going to show that this folk rule is not valid; you can go to extremely large numbers of coefficients without trouble.
 But like most folk rules, it has a strong basis in reality: There are extremely bad choices possible for the number of coefficients, and especially when the number of parameters is close or comparable to the number of data points.
-As we will discuss below, these choices ought to be avoided, or made with care.
+As we will discuss below, these choices ought to be made with care.
 
 In many cases the third kind of choice---about regularization---is made implicitly, not explicitly.
 Here we are going to emphasize this choice and its importance, and its value in improving your results.
@@ -534,27 +534,27 @@ All empirical measures of predictive accuracy have these kinds of problems.
 
 \section{The Gaussian process: The limit of infinite features}\label{sec:gp}
 
-The Gaussian process (GP) is a non-parametric regression that takes training data $y_i$ at coordinates $t_i$, plus a kernel function, and makes predictions $\hat{y}_\ast$ for new data at new positions $t_\ast$.
+The Gaussian process (GP; see \citealt{gpml} for a complete introduction) is a non-parametric regression that takes training data $y_i$ at coordinates $t_i$, plus a kernel function, and makes predictions $\hat{y}_\ast$ for new data at new positions $t_\ast$.
 The Gaussian process mean prediction looks like%
 \begin{equation}\label{eq:gpmean}
     \hat{Y}_\ast = K_\ast\,K^{-1}\,Y
     ~,
 \end{equation}
-where $K_\ast$ is the rectangular kernel matrix between test locations $t_\ast$ and training locations $t_i$, while $K$ is the square kernel matrix between training locations and themselves
+where $K$ is a square $n\times n$ kernel matrix between training locations and themselves
 \begin{equation}\label{eq:Kmatrix}
     [K]_{i,i'} = k(t_i,t_{i'})
     ~,
 \end{equation}
-where $k(\cdot,\cdot)$ is a positive semi-definite kernel function.
+and $K_\ast$ is the same except it is the rectangular kernel matrix between test locations $t_\ast$ and training locations $t_i$;
+the function $k(\cdot,\cdot)$ is a positive semi-definite kernel function.
 Stated this simply, the GP looks like magic; our goal here is to connect this to the feature-weighted OLS from \sectionname~\ref{sec:fwols}.
 
 First, what does it mean for a kernel function $k(\cdot,\cdot)$ to be positive semi-definite?
 It means that no matter what set of $n$ locations $t_i$ you choose, the $n\times n$ kernel matrix $K$ made from the function according to \eqref{eq:Kmatrix} has only non-negative, real eigenvalues.
 The kernel function must be positive semi-definite because, among other things, it is describing the variance of a process, and variances are always non-negative.
-It turns out that you can guarantee that a kernel function is positive semi-definite if you can show that it is, itself, the Fourier transform of a non-negative function (this fact is known as Bochner's Theorem, see for instance \citealt{folland2016course}).
-(It is \emph{not} required, however, that the function $k(\cdot,\cdot)$ itself be non-negative at all values of the inputs; non-negative definiteness is a different condition entirely.)
+It turns out that you can guarantee that a kernel function is positive semi-definite if you can show that it is, itself, the Fourier transform of a non-negative function (Bochner's Theorem, see for example \citealt{folland2016course}).\footnote{It is \emph{not} required that the function $k(\cdot,\cdot)$ itself be non-negative; non-negative definiteness is a different condition entirely from non-negativity.}
 
-Although the kernel matrix $K$ is, by construction, always positive semi-definite, it can have extremely bad or even infinite condition number. That is, it can lead your code or implementation into very unstable linear-algebra operations. We discuss these issues below in \sectionname~\ref{sec:implementation}.
+Although the kernel matrix $K$ is, by construction, always positive semi-definite, it can have extremely bad or even infinite condition number. That is, it can lead your code or implementation into very unstable linear-algebra operations. We discuss how to handle these issues below in \sectionname~\ref{sec:implementation}.
 
 Above, we called the GP prediction the ``mean''. This is because the Gaussian process is a model for a mean \emph{and variance} in function space.
 In addition to the mean $\hat{Y}_\ast$ predicted in \eqref{eq:gpmean}, the GP also predicts a \emph{variance} in the $Y_\ast$ space around that mean.
@@ -709,8 +709,8 @@ For rectangular feature matrices it is the ratio of the largest singular value (
 
 When the condition number is large, different linear-algebra approaches will differ.
 For example, the function call \code{solve(A, b)} should give you the best estimate it can for the product $A^{-1}\,b$, whereas the function call \code{dot(inv(A), b)}, which is the same on paper, will give you the dot product between \code{b} and the best estimate that \code{inv()} can find for the inverse of \code{A}.
-When the condition number of $A$ is large, these two values can be very different, and the \code{solve()} will be better (this claim contradicts what is stated in the abstract of \citealt{solve}, but this claim is based on our real experiences with real matrices, so we stand by it).
-Use \code{solve(A, b)} and never \code{dot(inv(A), b)} unless there are compelling code-structure reasons to use the latter, such as repeated calls (but even then, a Cholesky decomposition and Cholesky-solves are probably more stable).
+When the condition number of $A$ is large, these two values can be very different, and the \code{solve()} will be better.\footnote{This claim contradicts what is stated in the abstract of \citet{solve}, but this claim is based on our real numerical experiments on real matrices, so we stand by it. What is uncontroversial is that \code{solve(A, b)} will always perform non-worse than \code{dot(inv(A), b)}; sometimes it will perform far better.}
+Use \code{solve(A, b)} and never \code{dot(inv(A), b)} unless there are compelling code-structure reasons to use the latter, such as repeated calls (but even then, a Cholesky decomposition followed by repeated Cholesky solves is probably a more stable solution).
 
 If your condition number gets very large, even \code{solve()} can give bad results, because very small eigenvalues of the matrix are being poorly estimated and then inverted.
 That's unstable.
@@ -765,7 +765,7 @@ And, technically, when you take this view (that the parameters $\beta$ matter), 
 That is, the beliefs encoded in the data noise variance tensor $C$ also must represent your true beliefs if you don't want your answers distorted in bad ways.
 All of that is out of scope here, but we say things about it all elsewhere (\citealt{fitting}).
 
-In many cases, when the goal is just to interpolate or de-noise data, in the natural sciences, investigators use running means (or medians), low-pass filters, or explicit interpolators (like cubic spline interpolation).
+In many cases, when the goal is just to interpolate or de-noise data, investigators use running means (or medians), low-pass filters, or explicit interpolators (like cubic spline interpolation).
 These methods all have close relationships with what is written here.
 Indeed, a running mean, a low-pass filter, and a cubic-spline interpolator can all be written as a linear operator (the details of which depends on the locations $t_i$ of the data) acting on the input data vector $Y$, just like our linear fits produce linear operators.
 This means that in many cases, these methods can be translated into versions of the methods we present in this \documentname.
@@ -789,10 +789,6 @@ In the toy examples used throughout this \documentname, we considered data with 
 This was a choice for simplicity of visualization; in principle the locations $t_i$ could be higher dimensional, or live in a different kind of space.
 The most important consideration about the dimensionality and range of the locations is that the functions $g_j(t)$ have to sensibly take the locations $t_i$ as input.
 In astronomy and cosmology contexts, it is common for the locations $t_i$ to be positions on the sphere, and it is common for the natural basis functions to be spherical harmonics, for example.
-
-We also generated our toy data with locations $t_i$ regularly spaced in the location space.
-None of our results or recommendations depend on the locations being equally spaced.
-The simple form for the feature weighting we suggest does, however, depend on the features being equally spaced in \emph{frequency} space.
 
 The methods in this \documentname\ are all \emph{discriminative}, in the sense that we took the locations $t_i$ to be prior or primary;
 the goal was to find a function of locations $t_i$ that predicts data $y_i$.
@@ -860,7 +856,7 @@ Using this formulation it is easy to check that the solution of \eqref{eq:opt2} 
 \end{equation}
 or equivalently 
 \begin{equation}
-    \hat{\beta} = \arg\min_\beta \frac{1}{2}\beta^\top \Lambda\,\beta ~~\mbox{subject to}~~  X\,\beta = Y
+    \hat{\beta} = \arg\min_\beta \frac{1}{2}\,\beta^\top \Lambda\,\beta ~~\mbox{subject to}~~  X\,\beta = Y
     ~,
 \end{equation}
 obtaining the formulation in \eqref{qp} for $G=\Lambda$, $c=0$, $A=X$, $b=Y$ and $x=\beta$. Using the KKT conditions we obtain
