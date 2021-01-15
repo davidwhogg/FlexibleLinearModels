@@ -28,9 +28,9 @@
 }
 
 % Hogg's issues
-\setlength{\topmargin}{-0.40in}
+\setlength{\topmargin}{-0.50in}
 \setlength{\headsep}{4ex}
-\setlength{\textheight}{9.20in}
+\setlength{\textheight}{9.30in}
 \setlength{\oddsidemargin}{0.5in}
 \setlength{\textwidth}{5.50in}
 \setlength{\parindent}{0.18in}
@@ -45,9 +45,9 @@
 % Hogg's really severe issues
 \makeatletter
 \renewcommand\section{\@startsection {section}{1}{\z@}%
-  {-3.5ex \@plus -1ex \@minus -.2ex}%
-  {2.3ex \@plus.2ex}%
-  {\raggedright\normalfont\Large\bfseries}}
+  {-3.25ex \@plus -1ex \@minus -.2ex}%
+  {1.5ex \@plus .2ex}%
+  {\raggedright\normalfont\large\bfseries}}
 \makeatother
 
 % Math operators and definitions
@@ -340,7 +340,7 @@ This optimization is again convex and has a unique solution, although that solut
 When the investigator knows uncertainties on the training data points $y_i$, this expression will change a bit; we return to that in the next \sectionname.
 The under-parameterized and over-parameterized optimization statements \eqref{eq:opt1} and \eqref{eq:opt2} can be unified into one form by considering the limit of light L2 regularization:
 \begin{equation}\label{eq:opt3}
-    \hat{\beta} = \lim_{\lambda\rightarrow 0^+}\left[\arg\min_\beta \|Y - X\,\beta\|_2^2 + \lambda\,\|\beta\|_2^2\right]
+    \hat{\beta} = \lim_{\lambda\to 0^+}\left[\arg\min_\beta \|Y - X\,\beta\|_2^2 + \lambda\,\|\beta\|_2^2\right]
     ~;
 \end{equation}
 in the limit, this delivers the OLS solution in either case and doesn't require the constraint in \eqref{eq:opt2} to be satisfied.
@@ -396,7 +396,7 @@ This can be seen as the prediction for new data resulting from the following opt
 \end{equation}
 which---in analogy to the optimizations \eqref{eq:opt2} and \eqref{eq:opt3}---can also be written as
 \begin{equation}
-    \hat{\beta} = \lim_{\lambda\rightarrow 0^+}\left[\arg\min_\beta \|Y - X\,\beta\|_2^2 + \lambda\,\|\Lambda^{1/2}\,\beta\|_2^2\right]
+    \hat{\beta} = \lim_{\lambda\to 0^+}\left[\arg\min_\beta \|Y - X\,\beta\|_2^2 + \lambda\,\|\Lambda^{1/2}\,\beta\|_2^2\right]
     ~.
 \end{equation}
 This doesn't require the constraints in \eqref{eq:weighted} to be satisfied. 
@@ -557,33 +557,32 @@ It turns out that you can guarantee that a kernel function is positive semi-defi
 Although the kernel matrix $K$ is, by construction, always positive semi-definite, it can have extremely bad or even infinite condition number. That is, it can lead your code or implementation into very unstable linear-algebra operations. We discuss how to handle these issues below in \sectionname~\ref{sec:implementation}.
 
 Above, we called the GP prediction the ``mean''. This is because the Gaussian process is a model for a mean \emph{and variance} in function space.
-In addition to the mean $\hat{Y}_\ast$ predicted in \eqref{eq:gpmean}, the GP also predicts a \emph{variance} in the $Y_\ast$ space around that mean.
+In addition to the mean $\hat{Y}_\ast$ predicted\footnote{There is an additional point worthy of mention here, which is that the expression \eqref{eq:gpmean} is implicitly for a GP with a zero prior mean. There is a more general expression that subtracts a prior mean function from the $Y$ values and adds the prior mean back in to the $\hat{Y}_\ast$ values. See \citet{gpml} for all the math.} in \eqref{eq:gpmean}, the GP also predicts a \emph{variance} in the $Y_\ast$ space around that mean.
 In this \documentname, we are going to treat the GP as producing only a mean prediction, where the shape of the kernel function matters, but the amplitude of the kernel function does not (the prediction is a ratio of kernel matrices, so the kernel amplitudes cancel).
 However, in Bayesian-inference contexts the amplitude of the GP kernel is important, and the predicted variances are important.
-(There is an additional point worthy of mention here, which is that the expression \eqref{eq:gpmean} is implicitly for a GP with a zero prior mean; there is a more general expression that subtracts a prior mean function from the $Y$ values and adds the prior mean back in to the $\hat{Y}_\ast$ values.)
 When we consider only the mean prediction of the GP, as we do here, then the GP is a kind of linear filter that operates on data $Y$ and predicts or interpolates to new data $Y_\ast$.
 Classically, this linear filter is sometimes called a Wiener filter (more on this in a moment) or \emph{kriging} (possibly because of \citealt{krige}).
 
 Importantly for us, there is a strong connection between the feature-weighted OLS and the GP.
-In particular, when we take the limit of infinite features ($p\rightarrow\infty$; provided the limit exists) we get kernel matrices $K$ in place of the $X\,\Lambda^{-1}\,X^\top$ matrix products:
+In particular, when we take the limit of infinite features ($p\to\infty$; provided the limit exists) we get kernel matrices $K$ in place of the $X\,\Lambda^{-1}\,X^\top$ matrix products:
 \begin{align}
-    \lim_{p\rightarrow\infty} X\,\Lambda^{-1}\,X^\top &= K
+    \lim_{p\to\infty} X\,\Lambda^{-1}\,X^\top &= K
     \\
-    \lim_{p\rightarrow\infty} X_\ast\,\Lambda^{-1}\,X^\top &= K_\ast
+    \lim_{p\to\infty} X_\ast\,\Lambda^{-1}\,X^\top &= K_\ast
     ~,
     \label{eq.limit}
 \end{align}
 where $\Lambda^{-1}$ is the diagonal matrix of weights, and element $i,i'$ of $K$ is obtained by evaluating a kernel function $k(t_i,t_{i'})$.
 Equivalently, the limit is
 \begin{equation}
-    \lim_{p\rightarrow\infty} \sum_{j=1}^p [\Lambda^{-1}]_{jj}\,g_j(t)\,g_{j}(t') = k(t, t')
+    \lim_{p\to\infty} \sum_{j=1}^p [\Lambda^{-1}]_{jj}\,g_j(t)\,g_{j}(t') = k(t, t')
     ~,
 \end{equation}
 where we have used the diagonality of $\Lambda$ to make a single sum over $j$.
 The specific form of the kernel function $k(\cdot,\cdot)$ depends on the basis (the features) we choose, and the weighting of the basis functions in the OLS.
 
 The connection between the infinite basis chosen (the form and weighting of the features) and the kernel function is governed by Mercer's theorem (see \citealt{minh2006mercer}).
-However, if the basis is Fourier, as we chose above in \eqref{eq:basis}, and the spacing between modes ($\Delta\omega =\omega_{j+2}-\omega_j$) is small enough, the kernel becomes very close to the Fourier transform of the square of the weighting function $f(\omega)$ we use to weight the features.
+However, if the basis is Fourier, as we chose above in \eqref{eq:basis}, and the spacing between modes ($\Delta\omega =\omega_{j+2}-\omega_j$) is small enough, the kernel approximates the Fourier transform of the square of the weighting function $f(\omega)$ we use to weight the features.
 
 That is, in the case of the specific example of weight function $f(\omega)$ given in equation \eqref{eq:f}, we can connect our feature-weighted OLS to an equivalent GP if we know the Fourier transform of the square of $f(\omega)$. We chose that specific form for $f(\omega)$ because it has a square that is a member of a Fourier-transform pair:
 \begin{align}
@@ -593,21 +592,22 @@ That is, in the case of the specific example of weight function $f(\omega)$ give
     ~.
 \end{align}
 This latter function is also known as the Mat\'ern $3/2$ kernel function; it will become the kernel function for the Gaussian process when we take the limit.
-In the limit $p\rightarrow\infty$, then, the specific example of a feature-weighted OLS given here becomes, in the limit, a GP with a kernel function very close to
+In the limit $\Delta\omega\to 0$ the specific example of the $p\to\infty$ feature-weighted OLS given here becomes a GP with kernel function $F(\cdot)$ (under the mild assumptions that guarantee that the discrete Fourier transform converges to the continuous Fourier transform, see \citealt{ft}):
 \begin{align}
-    k(t_i,t_{i'}) &= F(t_i-t_{i'})
+    k(t_i,t_{i'}) &\to F(t_i-t_{i'})
     \\ \label{eq:k}
     &= \sqrt{\frac{\pi}{8}}\,\left(1 + \frac{|t_i - t_{i'}|}{s}\right)\,\exp -\frac{|t_i - t_{i'}|}{s}
     ~.
 \end{align}
-Provided that the spacing of the Fourier modes in frequency space is $\Delta\omega\ll 1 / \Delta t_{\max}$ and the maximum frequency is $\floor{p / 2}\,\Delta\omega \gg 1 / \min(s, \Delta t_{\min})$, where
+Technically, the kernel function $k(\cdot,\cdot)$ converges to the Fourier transform of the square of the weighting function $f^2(\cdot)$ in the limit $\Delta\omega\to 0$ (the definition of $k(\cdot,\cdot)$ already assumes $p\to \infty$).
+However, provided that the spacing of the Fourier modes in frequency space is $\Delta\omega\ll 1 / \Delta t_{\max}$ and the maximum frequency is $\floor{p / 2}\,\Delta\omega \gg 1 / \min(s, \Delta t_{\min})$, where
 \begin{align}
-    \Delta t_{\min} \equiv \min_{i\ne j}|t_i - t_j|
+    \Delta t_{\min} &\equiv \min_{i\ne j}|t_i - t_j|
     \\
-    \Delta t_{\max} \equiv \max_{i,j}|t_i - t_j|
+    \Delta t_{\max} &\equiv \max_{i,j}|t_i - t_j|
     ~,
 \end{align}
-it will be true that the OLS with feature weights $f(\omega)$ will be essentially identical to the mean of a GP with kernel $k(\Delta t) = \FT[f^2]$.
+it will be true that the OLS with feature weights $f(\omega)$ will closely approximate the mean of a GP with kernel $k(\Delta t) = \FT[f^2]$ (\citealt{ft}).
 The comparison of the OLS and GP is shown in \figurename~\ref{fig:gp}.
 \begin{figure}[t]
     \begin{mdframed}
@@ -621,9 +621,9 @@ In our toy examples, we use the feature weighting that generates the Mat\'ern 3/
 It is important to emphasize that there are literally infinite alternative choices that can be made here, and hundreds even if you restrict to kernels with known closed forms.
 Indeed, any function $F(t-t')$ that has a finite, all-positive Fourier transform $f^2(\omega)$ can be substituted for the Mat\'ern kernel and associated frequency weighting function we use here.
 
-The particular kernel we obtain in equation \eqref{eq:k} is a stationary kernel, meaning it depends only on absolute values of time differences $|t - t'|$. Not all $p\rightarrow\infty$ kernels will be stationary. The limit $p\rightarrow\infty$ of $X\,\Lambda^{-1}\,X^\top$ in \eqref{eq.limit} leads to a stationary kernel $k(\cdot,\cdot)$ in this case because the feature embedding in $X$ is a set of sines and cosines.
+The particular kernel we obtain in equation \eqref{eq:k} is a stationary kernel, meaning it depends only on absolute values of time differences $|t - t'|$. Not all $p\to\infty$ kernels will be stationary. The limit $p\to\infty$ of $X\,\Lambda^{-1}\,X^\top$ in \eqref{eq.limit} leads to a stationary kernel $k(\cdot,\cdot)$ in this case because the feature embedding in $X$ is a set of sines and cosines.
 Sines and cosines form a basis for translation-invariant function spaces.
-If we had made a different choice for our basis, such as polynomials or wavelets, we would have obtained a non-stationary kernel in the $p\rightarrow\infty$ limit.
+If we had made a different choice for our basis, such as polynomials or wavelets, we would have obtained a non-stationary kernel in the $p\to\infty$ limit.
 
 At the end of \sectionname~\ref{sec:fwols}, we discussed including not just feature weights in a matrix $\Lambda^{-1}$ but also data weights in a matrix $C^{-1}$. The GP also permits this, and it is often a very good idea. The generalization of equations \eqref{eq:LambdaC1} and \eqref{eq:LambdaC2} to the GP case is 
 \begin{equation}\label{eq:gpC}
@@ -633,7 +633,7 @@ At the end of \sectionname~\ref{sec:fwols}, we discussed including not just feat
 As before, in contexts where you have independent uncertainties on each element $y_i$ of your training data $Y$, $C^{-1}$ would naturally be set to the diagonal matrix containing the inverses of the variances of those uncertainties (so $C$ would contain the variances).
 This form \eqref{eq:gpC} is used a lot in astronomy and cosmology (for example, \citealt{zaroubi}, \citealt{aigrain}, \citealt{celerite}) and it is also the standard form given for the Wiener filter, where the kernel function generating $K$ is the Fourier transform of the ``signal power'' and the kernel function generating $C$ is the Fourier transform of the ``noise power''.
 In this form, the amplitude of the kernel function matters, because it is competing, in some sense, the variance $K$ of the GP against the variance $C$ of the noise.
-It is not sufficient to get the shape of the kernel function right to make a stable prediction of the mean, when using this form \eqref{eq:gpC}.
+It is not sufficient to get the shape of the kernel function right to make a stable prediction of the mean, when using form \eqref{eq:gpC}.
 
 \section{Uncertainties on the predictions}\label{sec:uncertainty}
 
@@ -763,12 +763,12 @@ In this case, any regularization you apply takes the role of a prior or prior in
 That prior must be chosen (in those cases) with great care, because the answers you get will be influenced by that choice; when it doesn't properly conform to your true beliefs, your answers will be distorted in bad ways.
 And, technically, when you take this view (that the parameters $\beta$ matter), you also have to get serious about the noise model on the data.
 That is, the beliefs encoded in the data noise variance tensor $C$ also must represent your true beliefs if you don't want your answers distorted in bad ways.
-All of that is out of scope here, but we say things about it all elsewhere (\citealt{fitting}).
+All of that is out of scope here, but we say things about it all elsewhere (for example, \citealt{fitting}).
 
 In many cases, when the goal is just to interpolate or de-noise data, investigators use running means (or medians), low-pass filters, or explicit interpolators (like cubic spline interpolation).
 These methods all have close relationships with what is written here.
 Indeed, a running mean, a low-pass filter, and a cubic-spline interpolator can all be written as a linear operator (the details of which depends on the locations $t_i$ of the data) acting on the input data vector $Y$, just like our linear fits produce linear operators.
-This means that in many cases, these methods can be translated into versions of the methods we present in this \documentname.
+This means that in many cases, these methods can be translated into versions of the methods we have presented in this \documentname.
 A full translation is beyond our scope, though.
 And our view is that the value of making explicit investigator choices about basis and the regularization makes the linear fitting approach better in general.
 
@@ -782,7 +782,7 @@ A nice recent result is that the feature weighting that we employ here can be us
 
 We discussed deterministic, ordered expansions like Fourier series and polynomials, but there is another class of \emph{random features} methods (see, for example, \citealt{rahimi2007random}) that we did not discuss.
 Briefly, the idea with random features is that instead of weighting features that are regularly spaced in frequency space with a weighting function $f(\omega)$, we could have generated unweighted features but randomly from a probability distribution $\propto f^2(\omega)$.
-The same Gaussian process limit appears as $p\rightarrow\infty$ (provided we choose those features with appropriately random phases too).
+The same Gaussian process limit appears as $p\to\infty$ (provided we choose those features with appropriately random phases too).
 These random-feature approaches have rarely been used in the natural sciences, but they are potentially of interest in many applications.
 
 In the toy examples used throughout this \documentname, we considered data with locations $t_i$ in a one-dimensional location space or ambient space.
@@ -802,7 +802,7 @@ But they are more general, and often more appropriate, especially when both the 
 In our toy examples, we used a Fourier series.
 That is just one choice among many.
 However, \emph{it is often a great choice}.
-When you choose the Fourier basis (and---importantly---for every cosine term you include the corresponding sine term), the matrix $X\,\Lambda^{-1}\,X^\top$ (and the limiting kernel matrix $K$ at $p\rightarrow\infty$) has the property that every matrix element $[X\,\Lambda^{-1}\,X^\top]_{ii'}$ depends on (or can be calculated from) just the absolute difference $|t_i-t_{i'}|$.
+When you choose the Fourier basis (and---importantly---for every cosine term you include the corresponding sine term), the matrix $X\,\Lambda^{-1}\,X^\top$ (and the limiting kernel matrix $K$ at $p\to\infty$) has the property that every matrix element $[X\,\Lambda^{-1}\,X^\top]_{ii'}$ depends on (or can be calculated from) just the absolute difference $|t_i-t_{i'}|$.
 That is, in this basis, all fitting methods become technically \emph{stationary}.
 This all relates to the translation-independence properties of the Fourier basis.
 So although the Fourier basis is just one choice among many, it is the \emph{right choice} when you think your problem has (or might have) certain kinds of translation invariances.
@@ -816,7 +816,7 @@ So although the Fourier basis is just one choice among many, it is the \emph{rig
 }
 
 \appendix
-\section{Mathematical arguments}\label{app:math}
+\section{Optimization arguments}\label{app:math}
 
 As mentioned in the main text, the optimal solutions of the unconstrained objectives \eqref{eq:opt1} and \eqref{eq:ridge} can be obtained by computing the first-order critical points. The first-order critical points are global minima because all the objectives considered are convex in the regression coefficients $\beta$.
 
