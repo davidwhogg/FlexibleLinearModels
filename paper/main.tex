@@ -2,7 +2,9 @@
 
 % to-do
 % -----
-% - SOLEDAD: MAKE SECTION 7 NOT WRONG.
+% - Is the GP relationship fully encoded in Bishop? If so, cite; if not, get more precise about what's new here. Also, maybe add a footnote in which we give the translation between our notation and Bishop's notation. Oh and thank Espinoza.
+% - Should we mention the "dual" representation? HOGG thinks we are going to the dual when we go from XTX to XXT.
+% - Should we do a CVMSE vs the s parameter to show that you can choose kernel parameters by CV as well?
 % - To be submitted to EPJ Data Science https://epjdatascience.springeropen.com/about
 
 \documentclass[12pt,letterpaper]{article}
@@ -63,7 +65,7 @@
 
 \begin{document}\thispagestyle{plain}
 
-\section*{\raggedright Fitting very flexible models: Linear regression with large numbers of parameters%
+\section*{Fitting very flexible models: Linear regression with large numbers of parameters%
 \footnote{%
 It is a pleasure to thank
 Jed Brown (CU Boulder),
@@ -201,7 +203,7 @@ Alternative common choices would be to make the embedding functions $g_j(t)$ pol
 Another choice that isn't common in the natural sciences, but studied in machine learning (for example, \citealt{rahimi2007random}), is to choose the features randomly from a distribution (rather than on a regular grid in frequency, as we do here). That is beyond our scope, but we come back to it in \sectionname~\ref{sec:discussion}.
 \begin{figure}[t]
     \begin{mdframed}
-    \includegraphics[width=\figurewidth]{paper/fourier.pdf}
+    \includegraphics[width=\figurewidth]{./fourier.pdf}
     \caption{Examples of basis functions $g_j(t)$ from the basis given in equation~\eqref{eq:basis}. This basis was constructed with length-scale parameter $T=3$. The wavelength in the location space decreases, and the frequency increases, with index $j$.}
     \label{fig:basis}
     \end{mdframed}
@@ -243,7 +245,7 @@ This form \eqref{eq:OLS} of the prediction of new test data is called ordinary l
 In particular, if the noise contributions in the model given in equation \eqref{eq.model} are uncorrelated, have zero mean, and equal variances for $i=1,\ldots, n$ then the Gauss--Markov theorem states that the OLS estimator has the lowest variance within the class of unbiased estimators that are linear in $Y$ (see, for example, \citealt{esl}, Ch.~3).
 \begin{figure}[t]
     \begin{mdframed}
-    \includegraphics[width=\figurewidth]{paper/OLS-under.pdf}
+    \includegraphics[width=\figurewidth]{./OLS-under.pdf}
     \caption{Ordinary least-squares (OLS) fits (continuous lines) to a set of example data points (black dots). Fits are shown for different values of the number of basis functions $p$; there are $n=23$ data points. Here (and in all the \figurename s to follow) we are using the Fourier basis functions in \eqref{eq:basis} and shown in \figurename~\ref{fig:basis}. The data $y_i$ were generated using a function that does not reside in the function space spanned by the basis. Here the $X_\ast$ matrices used in the predictions $\hat{Y}_\ast$ were generated from a fine grid of locations in the location coordinate $t$; the plots of the fine grid of predictions are the continuous lines. The fits with larger $p$ have more flexibility to fit the data than the fit with $p=3$, but the fit at the highest $p$ shows evidence of over-fitting.}
     \label{fig:ols1}
     \end{mdframed}
@@ -272,7 +274,7 @@ It is also called \emph{chi-squared fitting} because it optimizes the scalar obj
 In \figurename~\ref{fig:wls} a comparison of OLS and WLS is shown, for a case of non-trivial data weights, where the data weights are set to be the inverse squares of individual data-point uncertainties.
 \begin{figure}[t]
     \begin{mdframed}
-    \includegraphics[width=\figurewidth]{paper/WLS.pdf}
+    \includegraphics[width=\figurewidth]{./WLS.pdf}
     \caption{Comparison of ordinary least-squares (OLS) and weighted least-squares (WLS) fits (continuous lines) to the example data (black dots). In order to illustrate the differences, we assigned non-trivial error bars to the data. The error bars are ignored in the OLS fit, but in the WLS fit, the weight matrix $C^{-1}$ is diagonal with the diagonal entries set to the inverses of the squares of those error bars. The WLS fit ``pays less attention to'' the points on the left with the largest error bars.}
     \label{fig:wls}
     \end{mdframed}
@@ -299,7 +301,7 @@ In the language of Bayesian inference, $\lambda$ can be seen as the inverse of a
 The salutary effect of the ridge regularization is shown in \figurename~\ref{fig:ridge}.
 \begin{figure}[t]
     \begin{mdframed}
-    \includegraphics[width=\figurewidth]{paper/ridge.pdf}
+    \includegraphics[width=\figurewidth]{./ridge.pdf}
     \caption{Comparison of ordinary least-squares (OLS) and ridge-regression fits (continuous lines) to the example data (black dots). In order to illustrate the differences, we chose the $p=21$-parameter fit, which shows evidence of over-fitting at the edges of the fit range. The regularized fit looks more sensible, though it fits the individual data points less precisely. The choice of regularization parameter $\lambda$ matters; here we used $\lambda=0.1$ (chosen heuristically by hand).}
     \label{fig:ridge}
     \end{mdframed}
@@ -356,7 +358,7 @@ Examples of OLS fits in the over-parameterized regime are shown in \figurename~\
 Note that the fits with different numbers of parameters $p$ lead to very different predictions, but they all go through the data exactly.
 \begin{figure}[t]
     \begin{mdframed}
-    \includegraphics[width=\figurewidth]{paper/OLS-over.pdf}
+    \includegraphics[width=\figurewidth]{./OLS-over.pdf}
     \caption{Ordinary least-squares (OLS) or min-norm least-squares fits (continuous lines) to a set of example data points (black dots), but now for a few over-parameterized cases. There are $n=23$ data points. As in \figurename~\ref{fig:ols1}, the data points $y_i$ were generated using a function that does not precisely reside in the function space spanned by the basis. The three fits are very different, but they all go through all the data points exactly. As $p$ gets large, the fit function approaches $y=0$ almost everywhere; this is a consequence of Plancharel's Theorem (see text).}
     \label{fig:ols2}
     \end{mdframed}
@@ -421,7 +423,7 @@ The introduction of the feature weights dramatically changes the predictions; th
 High frequencies are suppressed and the prediction becomes smooth.
 \begin{figure}[t]
     \begin{mdframed}
-    \includegraphics[width=\figurewidth]{paper/weighted-OLS.pdf}
+    \includegraphics[width=\figurewidth]{./weighted-OLS.pdf}
     \caption{Comparison of ordinary least squares (OLS) to OLS with a specific feature weighting. The feature-weighting function is given in the text in equations~\eqref{eq:f} and \eqref{eq:lambdainv}; in this and the following \figurename s, we (somewhat arbitrarily) set the width parameter to be $s=0.05$. Because this weighting function penalizes more strongly the higher-frequency features, the min-norm solution gives them smaller amplitudes, making the fit smoother.}
     \label{fig:fwols}
     \end{mdframed}
@@ -454,7 +456,7 @@ They are solutions to the optimization
 The units of $C$ must be the units of $Y$ squared, and the units of $\Lambda^{-1}$ must be the square of the ratio of the units of $Y$ to the units of $X$ (the square of the units of $\beta$). These weighted-feature, weighted-data least-square forms \eqref{eq:LambdaC1} and \eqref{eq:LambdaC2} are good because (if the weightings are chosen appropriately) they lead to smooth solutions that are not required to pass precisely through every data point. This is appropriate in common, real situations in which data are noisy and the world is smooth. Which form you choose, between \eqref{eq:LambdaC1} and \eqref{eq:LambdaC2}, depends on a few things, but primarily $p/n$. If $p<n$ it's both faster and more stable to use \eqref{eq:LambdaC1}; if $p>n$ it's faster and more stable to use \eqref{eq:LambdaC2}. We show a toy example of a fit with both feature weights $\Lambda^{-1}$ and data weights $C^{-1}$ in \figurename~\ref{fig:fwwls}.
 \begin{figure}[t]
     \begin{mdframed}
-    \includegraphics[width=\figurewidth]{paper/weighted-WLS.pdf}
+    \includegraphics[width=\figurewidth]{./weighted-WLS.pdf}
     \caption{Comparison of the feature-weighted OLS shown in \figurename~\ref{fig:fwols} to the same but also including data weights $C^{-1}$, as in equations \eqref{eq:LambdaC1} and \eqref{eq:LambdaC2}.
     Similarly to \figurename~\ref{fig:wls}, the data weights on the diagonal of $C^{-1}$ are the inverses of the squares of the uncertainties shown as vertical error bars. The feature weights encourage the prediction to be smooth; the data weights permit it to be even smoother because they permit the prediction to miss the training data.
     Prediction results now depend on the specific amplitude or prefactor multiplying the feature weights; a particular value of $0.07\,f^2(\omega)$ was chosen for the diagonal of the feature weight matrix $\Lambda^{-1}$ for this demonstration.}
@@ -479,7 +481,7 @@ This process is illustrated in \figurename~\ref{fig:loo}, where we show $23$ fit
 Also shown is the prediction, in each leave-one-out fit, for the left-out point.
 \begin{figure}[t]
     \begin{mdframed}
-    \includegraphics[width=\figurewidth]{paper/LOO.pdf}
+    \includegraphics[width=\figurewidth]{./LOO.pdf}
     \caption{A demonstration of leave-one-out cross-validation for one particular model. The 23 lines are the 23 fits, for each of which one data point was held out. Also plotted on each of the 23 lines is the prediction made for that fit's held-out data point. Some of the predictions don't appear within the plot window, because the predictions obtain large amplitudes at the edges.}
     \label{fig:loo}
     \end{mdframed}
@@ -492,7 +494,7 @@ An example of CVMSE for two models (the feature-weighted OLS and the ridge regre
 The predictive accuracy is indeed a very strong function of $p$.
 \begin{figure}[t]
     \begin{mdframed}
-    \includegraphics[width=\figurewidth]{paper/cross-validation.pdf}
+    \includegraphics[width=\figurewidth]{./cross-validation.pdf}
     \caption{Leave-one-out cross-validation estimates of mean squared prediction error for the feature-weighted OLS fits, as a function of the number of features $p$. Also shown are the same for ridge regression with $\lambda=0.1$ and also the Gaussian process that we will introduce in \sectionname~\ref{sec:gp} and show in \figurename~\ref{fig:gp}; the GP result is shown as a flat line because it doesn't have an associated number $p$. In detail the first (lowest-$t$) and last (highest-$t$) data points were not used in computing the mean squared error; that choice is debatable, but we are imagining an assessment of the quality of the \emph{interpolations}, not extrapolations, of these models. Note that the OLS predictions are much, much worse at $p\approx n$ (check out all the orders of magnitude on the vertical axis) than they are at very low or very high $p$, but that ridge regression doesn't show this behavior.}
     \label{fig:cv}
     \end{mdframed}
@@ -611,7 +613,7 @@ it will be true that the OLS with feature weights $f(\omega)$ will closely appro
 The comparison of the OLS and GP is shown in \figurename~\ref{fig:gp}.
 \begin{figure}[t]
     \begin{mdframed}
-    \includegraphics[width=\figurewidth]{paper/GP.pdf}
+    \includegraphics[width=\figurewidth]{./GP.pdf}
     \caption{Comparison of feature-weighted ordinary least squares with a Gaussian process. The figure shows the OLS fit, the feature-weighted version with the particular feature weighting given in \eqref{eq:f}, and the GP fit using the kernel \eqref{eq:F} that is the Fourier transform of the square of the feature weighting. The feature-weighted fit and the GP are essentially identical, as expected.}
     \label{fig:gp}
     \end{mdframed}
@@ -675,7 +677,7 @@ The square-root of the trace of this uncertainty variance $\hat{\Sigma}$ (that i
 Note the similarity between jackknife and cross-validation; it is relevant and important: These empirical estimates of uncertainty and prediction error are closely related.
 \begin{figure}[t]
     \begin{mdframed}
-    \includegraphics[width=\figurewidth]{paper/uncertainty.pdf}
+    \includegraphics[width=\figurewidth]{./uncertainty.pdf}
     \caption{The jackknife-estimated uncertainty on an ordinary least squares fit. What is shown is the diagonal of the empirical jackknife estimate $\hat{\Sigma}$ of the variance tensor on the prediction $\hat{Y}_\ast$ of an OLS fit. In other words, the off-diagonal entries of $\hat{\Sigma}_\ast$ are being ignored here; there are important covariances that are hard to visualize (and beyond our scope). The one-sigma region is larger than the span of the jackknife trials; this is because the jackknife trials are strongly correlated; the jackknife formula \eqref{eq:jackknife} compensates for those correlations.}
     \label{fig:uncertainty}
     \end{mdframed}
