@@ -4,7 +4,7 @@
 % -----
 % - Is the GP relationship fully encoded in Bishop? If so, cite; if not, get more precise about what's new here. Also, maybe add a footnote in which we give the translation between our notation and Bishop's notation. Oh and thank Espinoza.
 % - Should we mention the "dual" representation? HOGG thinks we are going to the dual when we go from XTX to XXT.
-% - Should we do a CVMSE vs the s parameter to show that you can choose kernel parameters by CV as well?
+% - Should we do a CVMSE vs the s parameter to show that you can choose kernel parameters by CV as well? Let's start by performing an experiment in the notebook. Not for now.
 % - To be submitted to EPJ Data Science https://epjdatascience.springeropen.com/about
 
 \documentclass[12pt,letterpaper]{article}
@@ -58,31 +58,17 @@
 \DeclareMathOperator{\FT}{\mathscr{F}}
 
 % text definitions
-\newcommand{\documentname}{\textsl{Note}}
+\newcommand{\documentname}{\textsl{Review}}
 \newcommand{\sectionname}{Section}
 \newcommand{\foreign}[1]{\textsl{#1}}
 \newcommand{\code}[1]{\texttt{#1}}
 
 \begin{document}\thispagestyle{plain}
 
-\section*{Fitting very flexible models: Linear regression with large numbers of parameters%
-\footnote{%
-It is a pleasure to thank
-Jed Brown (CU Boulder),
-Dan Foreman-Mackey (Flatiron),
-Alessandro Gentilini,
-Teresa Huang (JHU),
-Sam Roweis (deceased),
-Adrian Price-Whelan (Flatiron),
-Bernhard Sch\"olkopf (MPI-IS),
-Kate Storey-Fisher (NYU),
-Rachel Ward (UT Austin), and
-Lily Zhao (Yale)
-for valuable conversations and input.
-SV is partially funded by NSF DMS 2044349, EOARD FA9550-18-1-7007, and the NSF--Simons Research Collaboration on the Mathematical and Scientific Foundations of Deep Learning (MoDL) (NSF DMS-2031985).}}
+\section*{Fitting very flexible models: Linear regression with large numbers of parameters}
 
 \noindent
-\textbf{David W. Hogg} \\
+\textbf{David W. Hogg}\footnote{Corresponding author: David W. Hogg \href{mailto:david.hogg@nyu.edu}{david.hogg@nyu.edu}.} \\
 \textsl{\footnotesize Flatiron Institute, a division of the Simons Foundation \\
 Center for Cosmology and Particle Physics, Department of Physics, New York University \\
 Center for Data Science, New York University \\
@@ -106,6 +92,19 @@ We recommend cross-validation as a good empirical method for model selection (fo
 and jackknife resampling as a good empirical method for estimating the uncertainties of the predictions made by the model.
 We also give advice for building stable computational implementations.
 
+\paragraph{Keywords:}
+regression
+---
+interpolation
+---
+Gaussian~processes
+\\ ---
+double~descent
+---
+cross-validation
+
+
+\clearpage
 \section{Introduction}
 
 In contexts in which we want to fit a flexible function to data, for interpolation or denoising, we often perform linear fitting in a generic basis, such as polynomials, Fourier modes, wavelets, or spherical harmonics.
@@ -152,8 +151,8 @@ In some cases you have strong reasons to use a particular basis.
 In other cases you don't.
 The differences in these beliefs and the differences in your objectives will change what methods you choose and how you use and analyze them.
 We'll try to be useful to you no matter where you're at.
-This document does not deliver new research results on the mathematics or statistics of regression.
-It is novel only in that it makes very specific the connection between regularized linear regression and Gaussian processes.
+This \documentname\ delivers a theoretical and practical discussion of linear regression and function interpolation; it does not deliver new research results.
+Our only novel contribution is to make a specific connection between regularized linear regression and Gaussian processes.
 
 Ordinary least squares is reviewed in \sectionname~\ref{sec:ols}.
 The extensions of weighted least squares and ridge regression are shown in \sectionname~\ref{sec:extensions}.
@@ -749,8 +748,8 @@ Linear algebra scales naively as the dimension \emph{cubed}.
 
 \section{Discussion}\label{sec:discussion}
 
-This \documentname\ was about linear fitting with very flexible models, for interpolation, prediction, and de-noising of data.
-We encouraged you to consider using very big models, but being intentional about regularization.
+This \documentname\ is about linear fitting with very flexible models, for interpolation, prediction, and de-noising of data.
+We have encouraged you to consider using very big models, but being intentional about regularization.
 These settings (over-parameterized, but carefully regularized) are adaptive and useful, and they connect, as we showed, to Gaussian processes in the limit, which are well-studied workhorses of machine learning and data science.
 
 All the rage these days, is instead \emph{nonlinear fitting}, with \emph{deep learning} and the like (\citealt{deep}, for example).
@@ -892,5 +891,38 @@ In the particular case of \eqref{kkt2} it suffices to compute the top right bloc
     \hat \beta = \Lambda^{-1}\,X^\top(X\,\Lambda^{-1}X^\top)^{-1}\,Y
     ~. 
 \end{equation}
+
+\section*{Declarations}
+This section completes requirements for submission to \textit{EPJ Data Science}.
+
+\paragraph{Availability of data and materials:}
+All code and data used in this project are available at
+\url{https://github.com/davidwhogg/FlexibleLinearModels}
+
+\paragraph{Competing interests:}
+Does not apply.
+
+\paragraph{Funding:}
+DWH's work on this project was supported by the Flatiron Institute, a division of the Simons Foundation.
+SV's work on this project was supported by NSF DMS 2044349, EOARD FA9550-18-1-7007, and the NSF--Simons Research Collaboration on the Mathematical and Scientific Foundations of Deep Learning (MoDL) (NSF DMS-2031985).
+
+\paragraph{Authors' contributions:}
+The two authors contributed equally to the analysis and writing represented in this work.
+
+\paragraph{Acknowledgements:}
+It is a pleasure to thank
+Jed Brown (CU Boulder),
+Nestor Espinoza (STScI),
+Dan Foreman-Mackey (Flatiron),
+Alessandro Gentilini,
+Teresa Huang (JHU),
+Sam Roweis (deceased),
+Adrian Price-Whelan (Flatiron),
+Bernhard Sch\"olkopf (MPI-IS),
+Kate Storey-Fisher (NYU),
+Rachel Ward (UT Austin), and
+Lily Zhao (Yale)
+for valuable conversations and input.
+
 
 \end{document}
