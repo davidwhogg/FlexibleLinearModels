@@ -1,0 +1,68 @@
+\documentclass{amsart}
+\title{Fitting very flexible models \\
+Response to reviewer}
+\author{David W. Hogg and Soledad Villar}
+\begin{document}
+\maketitle
+
+\textbf{Editor comment:} The referee for your article has provided a very thorough, and rather glowing, review of your excellent tutorial.  As you can see from the referee's comments, the referee has a few recommendations, that are largely of a minor nature, that we would like for you to consider within a revised version of your very informative and useful tutorial.
+
+\textbf{Response:} We thank the reviewer and the editor for the kind comments about our manuscript and the improvement suggestions. We are submitting a revision addressing the suggested changes:
+\begin{itemize}
+    \item Added a comment on fast implementations of GPs and why one may not always be able to use them. HOGG
+    \item Changed the color scheme in many of the figures to make the lines more distinguishable. SOLEDAD
+    \item Added a short paragraph discussing jacknife given correlated noise. HOGG
+    \item Added a comment about the equivalence of different formulations. HOGG
+    \item Fixed typos.
+\end{itemize}
+
+\textbf{Reviewer comments:}
+``Fitting very flexible models" by Hogg and Villar is an excellent tutorial on the use of linear models for interpolating data. The tutorial is well written, with clear language and mathematics that is not too difficult to follow (I especially commend the authors on building from simple OLS matrix equations to the more complex equations towards the end of the paper without the need for the reader to fill in many of the intermediate steps, as should be the case in a tutorial). The tutorial is accompanied by clear figures and the software used to generate the data and figures is publicly available. In sum, I am grateful that this article exists as I will certainly have research associates read it and implement its methods, and I anticipate building future lectures for classes on the material.
+
+I recommend this tutorial for publication in PASP. In my opinion, it is suitable for publication as is, however, I have a few comments (mostly minor) and one (philosophical?) question that the authors may wish to consider before sending a resubmission.
+
+MAJOR COMMENTS
+--------------
+
+  In addition to serving as a tutorial, the article (in my opinion) implores the reader to consider regularized least-squares fitting as a means of interpolating data. I find the arguments convincing. However, the authors also show that the methods described here reproduce a Gaussian process in the limit p goes to infinity. My question: with relatively fast implementations of GPs now available (such as those developed by Foreman-Mackey and collaborators, which the authors cite) – should readers be encouraged to use $O(n^3)$ methods when GPs can be implemented with faster calculations [at least in the 1d case that makes the bulk of this tutorial]?
+
+
+\textbf{Response:} Thank your for your kind assessment of our work. We agree with your point of view regarding taking advantage of fast algorithms for GPs. Faster algorithms are preferable if available. However, the very fast Gaussian Process is only known for certain kernels and only in 1-dimension. In some cases you may want to use other basis like wavelet basis, or work in higher dimensions, like the sphere. To the best of our knowledge there is no fast implementation of GPs in the sphere. The regularized regression is a general framework.
+
+We made a comment in the end of Section 7 of our manuscript stating this point. 
+
+\bigskip
+
+\textbf{Reviewer comments:}
+MINOR COMMENTS
+--------------
+
+  In Figure 5 the black and purple lines are difficult to distinguish. I would consider alternate colors, or, better yet different line styles to more easily identify the p = 30 and p = 73 curves.
+
+\textbf{Response:} We changed the color scheme so the lines are distinguishable when printed in black and white.
+ \bigskip
+ 
+ \textbf{Reviewer comments:}
+   Section 4 begins by refuting the commonly held belief that the number of parameters cannot exceed the number of data points. This (incorrect) folklore is taught because introductory statistics typically ascribes meaning to all the parameters in a model. While early exposure to nuisance parameters would likely benefit our field, the idea is complex and harder to understand than the slope of this line is equal to the gravitational constant. (Now I'm rambling) my point: $p > n$ only works well when meaning is not be ascribed to the parameters. Perhaps it is worth a footnote here to remind the reader of that point? Or perhaps not?
+   
+   \textbf{Response:} We agree with this comment and we modified the first paragraph of Section 4 to address it. 
+   
+  \bigskip
+ \textbf{Reviewer comments: }
+   Eq 13 and 18 are equivalent (I believe), and this becomes clear from Eq. 23 and 24. Nevertheless I found the differing forms of 13 and 18 confusing the first couple of times I read through the text. It might be useful to add a note in the text or a footnote to Eq 18 stating that it is the same as Eq 13.
+ 
+ \textbf{Response:} We added a sentence about the equivalence of equations after equation 18. 
+ 
+ \bigskip
+  \textbf{Reviewer comments:} There are sigma hat's in Sect 8 that are missing their $*$
+  
+   \textbf{Response:} Fixed 
+ 
+ \bigskip
+ \textbf{Reviewer comments:}
+  Timeseries data, which the authors subtly suggest these methods are useful for by adopting $t_i$ instead of $x_i$, are often correlated over length scales that are larger than the typical separation between the observations. In this case, k=n jackknife estimates of the uncertainty are likely to underestimate the uncertainties in data gaps that are larger than the typical correlation length (which is a common occurrence in astronomical data). The authors may wish to add a note warning the reader about this.
+
+ \textbf{Response:}
+ This is a good point. We added a short paragraph about that in the relevant place. 
+
+\end{document}

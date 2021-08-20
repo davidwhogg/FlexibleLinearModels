@@ -6,12 +6,10 @@
 
 % to-do
 % -----
-% - HOGG: Finish going through Acquaviva comments and incorporate / assess.
-% - BOTH: Take one more look through the abstract (and title) and see what needs to be adjusted.
-% - HOGG. It is a kernel even when p \ne \infty! Re-word stuff in section 7.
 % - Should we do a CVMSE vs the s parameter to show that you can choose kernel parameters by CV as well? Let's start by performing an experiment in the notebook. Not for now.
-
-
+% - Should we cite more in the regularized and compressed-sensing contexts?
+% - Should we be more explicit about what goes wrong at high dimensions?
+% - Be careful to make it make it clear that we consider cross-validation to be the only empirical method to understand overfitting; check the words we write about over-fitting to match. It isn't just about the number of parameters.
 
 \documentclass[12pt,letterpaper]{article}
 \usepackage[utf8]{inputenc}
@@ -86,7 +84,8 @@ Max-Planck-Institut f\"ur Astronomie, Heidelberg}
 \textsl{\footnotesize Department of Applied Mathematics \& Statistics, Johns Hopkins University \\
 Mathematical Institute for Data Science, Johns Hopkins University}
 
-\paragraph{Abstract:} There are many uses for linear fitting; we consider here the interpolation and denoising of data, as when the goal is to fit a smooth, flexible function to a set of noisy data points.
+\paragraph{Abstract:}
+There are many uses for linear fitting; we consider here the interpolation and denoising of data, as when the goal is to fit a smooth, flexible function to a set of noisy data points.
 Investigators often choose a polynomial basis, or a Fourier basis, or wavelets, or something equally general.
 They also choose an order, or number of basis functions to fit, and (often) some kind of regularization.
 We discuss how this basis-function fitting is done, with ordinary least squares and extensions thereof.
@@ -165,8 +164,6 @@ Cross-validation is explained and used to choose the number of parameters in \se
 The Gaussian Process appears as the limit of infinite parameters in \sectionname~\ref{sec:gp}.
 Jackknife resampling is explained and used to estimate uncertainties in \sectionname~\ref{sec:uncertainty}.
 Numerical implementation considerations are discussed in \sectionname~\ref{sec:implementation} and some final remarks are made in \sectionname~\ref{sec:discussion}.
-
-
 
 \section{Standard linear fitting: Ordinary least squares with a feature embedding}\label{sec:ols}
 
@@ -249,7 +246,7 @@ This form \eqref{eq:OLS} of the prediction of new test data is called ordinary l
 In particular, if the noise contributions in the model given in equation \eqref{eq.model} are uncorrelated, have zero mean, and equal variances for $i=1,\ldots, n$ then the Gauss--Markov theorem states that the OLS estimator has the lowest variance within the class of unbiased estimators that are linear in $Y$ (see, for example, \citealt{esl}, Ch.~3).
 \begin{figure}[t]
     \begin{mdframed}
-    \includegraphics[width=\figurewidth]{./OLS-under.pdf}
+    \includegraphics[width=\figurewidth]{./OLS-under (1).pdf}
     \caption{Ordinary least-squares (OLS) fits (continuous lines) to a set of example data points (black dots). Fits are shown for different values of the number of basis functions $p$; there are $n=23$ data points. Here (and in all the \figurename s to follow) we are using the Fourier basis functions in \eqref{eq:basis} and shown in \figurename~\ref{fig:basis}. The data $y_i$ were generated using a function that does not reside in the function space spanned by the basis. Here the $X_\ast$ matrices used in the predictions $\hat{Y}_\ast$ were generated from a fine grid of locations in the location coordinate $t$; the plots of the fine grid of predictions are the continuous lines. The fits with larger $p$ have more flexibility to fit the data than the fit with $p=3$, but the fit at the highest $p$ shows evidence of over-fitting.}
     \label{fig:ols1}
     \end{mdframed}
@@ -296,7 +293,7 @@ There are many options, but the simplest is ridge regression (or Tikhonov regula
 where $\lambda>0$ is a regularization parameter that penalizes large values for elements $\beta_j$ of the parameter vector.
 This optimization is also convex.
 The ridge-regularized prediction for new data looks like
-\begin{equation} \label{eq:ridge_sol}
+\begin{equation}\label{eq:ridge_sol}
     \hat{Y}_\ast = X_\ast\,(X^\top X + \lambda\,I)^{-1}\,X^\top Y
     ~,
 \end{equation}
@@ -329,12 +326,13 @@ We have discussed that model elsewhere (\citealt{products}).\footnote{In our pre
 It is also useful sometimes to think of the ``units'' or dimensions of the quantities in \eqref{eq:foo}: In the Bayesian setting, the units of $C$ would be the square of the units of $Y$ and the units of $\Lambda^{-1}$ would be the square of the units of the ratio $Y/X$ (the square of the units of $\beta$).
 
 \section{Over-parameterization}\label{sec:overpar}
-
 We are taught folklore, that we can never fit for more parameters than we have data. That is, we can never work at $p>n$.
 This isn't true!
 Not only is it the case that we \emph{can} work at $p>n$, in many cases we \emph{should} work at $p>n$, and many real-world regressions do.
-But it is true that the $p>n$ regime is indeed strange.
 In the over-parameterized case, there are typically many choices for the parameters $\beta_j$ that will literally zero out the differences between the data $Y$ and the linear prediction $X\,\beta$.
+In the introduction we said that we are considering the case of linear regression in which \emph{we don't care about the values of the parameters}.
+That is, the parameters of our linear fits are just nuisance parameters.
+This means that we don't have very detailed opinions about how these redundancies in the model (redundancies that appear when $p>n$) are resolved.
 The OLS solution, in this case, is defined (somewhat arbitrarily) to be the minimum-norm parameter vector $\beta$ that interpolates the data:
 \begin{equation}\label{eq:opt2}
     \hat{\beta} = \arg\min_\beta \|\beta\|_2^2 ~~\mbox{subject to}~~ Y = X\,\beta
@@ -362,7 +360,7 @@ Examples of OLS fits in the over-parameterized regime are shown in \figurename~\
 Note that the fits with different numbers of parameters $p$ lead to very different predictions, but they all go through the data exactly.
 \begin{figure}[t]
     \begin{mdframed}
-    \includegraphics[width=\figurewidth]{./OLS-over.pdf}
+    \includegraphics[width=\figurewidth]{./OLS-over (1).pdf}
     \caption{Ordinary least-squares (OLS) or min-norm least-squares fits (continuous lines) to a set of example data points (black dots), but now for a few over-parameterized cases. There are $n=23$ data points. As in \figurename~\ref{fig:ols1}, the data points $y_i$ were generated using a function that does not precisely reside in the function space spanned by the basis. The three fits are very different, but they all go through all the data points exactly. As $p$ gets large, the fit function approaches $y=0$ almost everywhere; this is a consequence of Plancharel's Theorem and the use of the Fourier basis (see text).}
     \label{fig:ols2}
     \end{mdframed}
@@ -395,7 +393,8 @@ We can encode these feature weights in a $p\times p$ diagonal weight matrix $\La
     \hat{Y}_\ast = X_\ast\,\Lambda^{-1}\,X^\top (X\,\Lambda^{-1}\,X^\top)^{-1}\,Y
     ~.
 \end{equation}
-This can be seen as the prediction for new data resulting from the following optimization (again, assuming the data can be interpolated):
+This equation is a special case of the fully general form we will give below in \eqref{eq:LambdaC2}, and equivalent to a special case of \eqref{eq:foo} above.
+This \eqref{eq:weighted_sol} can be seen as the prediction for new data resulting from the following optimization (again, assuming the data can be interpolated):
 \begin{equation} \label{eq:weighted}
     \hat{\beta} = \arg\min_\beta \|\Lambda^{1/2}\,\beta\|_2^2 ~~\mbox{subject to}~~ Y = X\,\beta
     ~,
@@ -646,6 +645,13 @@ This form \eqref{eq:gpC} is used a lot in astronomy and cosmology (for example, 
 In this form, the amplitude of the kernel function matters, because it is competing, in some sense, the variance $K$ of the GP against the variance $C$ of the noise.
 It is not sufficient to get the shape of the kernel function right to make a stable prediction of the mean, when using form \eqref{eq:gpC}.
 
+We remark that a naive implementation of the regularized regression using \eqref{eq:gpC} has an $O(n^3)$ time complexity.
+However, Gaussian processes can be implemented in something close to $O(n)$ for certain classes of one-dimensional models (\citealt{ambikasaran2015fast, celerite}).
+Given this, you might ask: Why use $O(n^3)$ feature-weighted over-parameterized regressions when you could just use a fast GP?
+Unfortunately there are not algorithms that are so fast for higher dimensional GPs, and there are no good algorithms at all for many situations (for example GPs on the surface of a sphere).
+Furthermore, the standard GP implementations focus on stationary GPs, which do not encompass all the options that one might construct with non-stationary basis functions.
+Given all this, it is often the case that one should or must use linear-regression frameworks, when appropriate GPs are not available.
+
 \section{Uncertainties on the predictions}\label{sec:uncertainty}
 
 Often we need to compute not just a prediction, but also an uncertainty on that prediction.
@@ -684,15 +690,17 @@ where $\hat{Y}_{\ast i}$ is the estimate of $Y_\ast$ made after \emph{leaving ou
 The pre-factor $(n-1)/n$ in \eqref{eq:jackknife} 
 %is not anything like the $1/(n-1)$ that we use when you estimate a standard variance; this difference 
 comes from the fact that the jackknife subsamples are extremely correlated; the pre-factor is computed to amplify the jackknife variance into an unbiased estimate of the variance of the estimator $\hat{Y}_\ast$.
-The square-root of the trace of this uncertainty variance $\hat{\Sigma}$ (that is, what we might call the jackknife estimate of the standard error) is shown in \figurename~\ref{fig:uncertainty}.
+The square-root of the trace of this uncertainty variance $\hat{\Sigma}_\ast$ (that is, what we might call the jackknife estimate of the standard error) is shown in \figurename~\ref{fig:uncertainty}.
 Note the similarity between jackknife and cross-validation; it is relevant and important: These empirical estimates of uncertainty and prediction error are closely related.
 \begin{figure}[t]
     \begin{mdframed}
     \includegraphics[width=\figurewidth]{./uncertainty.pdf}
-    \caption{The jackknife-estimated uncertainty on an ordinary least squares fit. What is shown is the diagonal of the empirical jackknife estimate $\hat{\Sigma}$ of the variance tensor on the prediction $\hat{Y}_\ast$ of an OLS fit. In other words, the off-diagonal entries of $\hat{\Sigma}_\ast$ are being ignored here; there are important covariances that are hard to visualize (and beyond our scope). The one-sigma region is larger than the span of the jackknife trials; this is because the jackknife trials are strongly correlated; the jackknife formula \eqref{eq:jackknife} compensates for those correlations.}
+    \caption{The jackknife-estimated uncertainty on an ordinary least squares fit. What is shown is the diagonal of the empirical jackknife estimate $\hat{\Sigma}_\ast$ of the variance tensor on the prediction $\hat{Y}_\ast$ of an OLS fit. In other words, the off-diagonal entries of $\hat{\Sigma}_\ast$ are being ignored here; there are important covariances that are hard to visualize (and beyond our scope). The one-sigma region is larger than the span of the jackknife trials; this is because the jackknife trials are strongly correlated; the jackknife formula \eqref{eq:jackknife} compensates for those correlations.}
     \label{fig:uncertainty}
     \end{mdframed}
 \end{figure}
+
+DAVID HOGG: write a couple of sentences about correlated timeseries as per refereee. 
 
 These methods---full likelihood analysis and jackknife---take into account (A)~the noise in the data $y_i$ and (B)~the number and spacing of the training data points.
 They do not, by themselves, take into account (C)~the uncertainties on the locations $t_i$.
@@ -874,7 +882,7 @@ The first-order necessary conditions for $x^*$ to be a solution of \eqref{qp} is
     ~.
     \label{kkt}
 \end{equation}
-Equation \eqref{kkt} is typically known as the Karush-Kuhn-Tucker conditions (KKT). If the objective function in \eqref{qp} is convex, the KKT conditions are also sufficient for optimality.\footnote{The KKT conditions can also characterize optimality in more general cases. For instance, if $A$ has full row rank and $Z$ is the nullspace of $A$, if $Z^\top G\, Z$ is positive semidefinite the KKT conditions are sufficient for optimality. If $Z^\top G\, Z$ is positive definite we also have that the solution of \eqref{qp} is unique (which is typically the case in the underparameterized linear regression but not in the overparameterized).}
+Equation \eqref{kkt} is typically known as the Karush-Kuhn-Tucker conditions (KKT). If the objective function in \eqref{qp} is convex, the KKT conditions are also sufficient for optimality.\footnote{The KKT conditions can also characterize optimality in more general cases. For instance, if $A$ has full row rank and $Z$ is the nullspace of $A$, if $Z^\top G\, Z$ is positive semidefinite the KKT conditions are sufficient for optimality. If $Z^\top G\, Z$ is positive definite we also have that the solution of \eqref{qp} is unique (which is typically the case in the under-parameterized linear regression but not in the over-parameterized).}
 
 Using this formulation it is easy to check that the solution of \eqref{eq:opt2} leads to predictions in \eqref{eq:ridge_sol}, and the solution of \eqref{eq:weighted} produce \eqref{eq:weighted_sol}. For instance, in order to show the latter we consider 
 \begin{equation} \label{eq:weighted_app}
